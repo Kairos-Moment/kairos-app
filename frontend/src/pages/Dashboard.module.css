@@ -1,0 +1,34 @@
+/* frontend/src/pages/Dashboard.module.css */
+.dashboardLayout {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    background-color: #f4f7fa; /* Light grey background */
+  }
+  
+  .mainContent {
+    flex-grow: 1;
+    overflow-y: auto; /* Makes the content scrollable */
+    position: relative; /* Needed for positioning the FAB */
+  }
+  
+  .floatingActionButton {
+    position: absolute; /* Changed from fixed to be relative to mainContent */
+    bottom: 2rem;
+    right: 2rem;
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    background-color: #007bff;
+    color: white;
+    border: none;
+    font-size: 2rem;
+    line-height: 56px; /* Vertically center the '+' */
+    text-align: center;
+    cursor: pointer;
+    box-shadow: 0 4px 12px rgba(0, 123, 255, 0.4);
+    transition: transform 0.2s;
+  }
+  .floatingActionButton:hover {
+    transform: scale(1.1);
+  }

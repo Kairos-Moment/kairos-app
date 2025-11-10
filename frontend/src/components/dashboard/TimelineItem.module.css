@@ -1,0 +1,70 @@
+/* frontend/src/components/dashboard/TimelineItem.module.css */
+.timelineItem {
+    display: flex;
+    gap: 1.5rem;
+  }
+  
+  .timeMarker {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+  
+  .timeMarker span {
+    background-color: #007bff;
+    color: white;
+    border-radius: 50%;
+    width: 36px;
+    height: 36px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-weight: bold;
+    font-size: 0.9rem;
+  }
+  
+  .card {
+    flex-grow: 1;
+    background-color: #ffffff;
+    border: 1px solid #e0e0e0;
+    border-radius: 12px;
+    padding: 1rem 1.5rem;
+    margin-bottom: 1.5rem;
+  }
+  .cardHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.5rem;
+  }
+  .tag {
+    padding: 0.25rem 0.75rem;
+    border-radius: 12px;
+    font-size: 0.8rem;
+    font-weight: 500;
+  }
+  .urgent-task {
+    background-color: #ffebee;
+    color: #c62828;
+  }
+  .calendar-event {
+    background-color: #e8f5e9;
+    color: #2e7d32;
+  }
+  .scheduled-task {
+    color: #666;
+  }
+  
+  .status {
+    font-size: 0.9rem;
+    color: #666;
+  }
+  .cardBody h3 {
+    margin: 0 0 0.25rem 0;
+    font-size: 1.1rem;
+    color: #1a1a1a;
+  }
+  .cardBody p {
+    margin: 0;
+    color: #555;
+  }

@@ -1,10 +1,14 @@
 // frontend/src/App.jsx
+import { Routes, Route } from 'react-router-dom';
+import Dashboard from './pages/Dashboard';
 
 function App() {
   return (
-    <div>
-      <h1>Welcome to Kairos</h1>
-    </div>
+    <Routes>
+      <Route path="/" element={<Dashboard />} />
+      {/* You can add more routes here later, e.g., for login */}
+      {/* <Route path="/login" element={<LoginPage />} /> */}
+    </Routes>
   );
 }
 

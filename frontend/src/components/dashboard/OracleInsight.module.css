@@ -1,0 +1,41 @@
+/* frontend/src/components/dashboard/OracleInsight.module.css */
+.insightCard {
+    background-color: #007bff;
+    color: white;
+    padding: 1.5rem;
+    margin: 2rem;
+    border-radius: 16px;
+  }
+  
+  .insightCard h2 {
+    margin-top: 0;
+    font-weight: 600;
+  }
+  
+  .insightCard p {
+    opacity: 0.9;
+    max-width: 90%;
+  }
+  
+  .taskList {
+    list-style: none;
+    padding: 0;
+    margin-top: 1.5rem;
+  }
+  .taskList li {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 0.75rem;
+    font-weight: 500;
+  }
+  .taskIcon {
+    font-size: 1.25rem;
+  }
+  .taskText {
+    flex-grow: 1;
+  }
+  .taskDue {
+    font-size: 0.9rem;
+    opacity: 0.8;
+  }
