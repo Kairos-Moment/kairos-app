@@ -1,28 +1,36 @@
 // frontend/src/components/dashboard/OracleInsight.jsx
 import React from 'react';
 import styles from './OracleInsight.module.css';
-import { RiFileList2Line, RiFlaskLine, RiTeamLine } from 'react-icons/ri';
+import { RiFileList2Line } from 'react-icons/ri';
 
-const insightTasks = [
-  { icon: <RiFileList2Line />, text: 'Review Q3 Report', due: 'Due Today' },
-  { icon: <RiFlaskLine />, text: 'Prepare for Client Meeting', due: 'Due Tomorrow' },
-  { icon: <RiTeamLine />, text: 'Schedule Team Brainstorm', due: 'This Week' },
-];
+const OracleInsight = ({ insightData, isLoading }) => {
+  // Display a loading skeleton or message
+  if (isLoading || !insightData) {
+    return (
+      <div className={`${styles.insightCard} ${styles.loading}`}>
+        <h2>The Oracle's Insight</h2>
+        <p>Analyzing your day...</p>
+      </div>
+    );
+  }
 
-const OracleInsight = () => {
+  const { message, tasks } = insightData;
+
   return (
     <div className={styles.insightCard}>
       <h2>The Oracle's Insight</h2>
-      <p>Seize the day with purpose! Focus on these high-leverage tasks to make today truly impactful.</p>
-      <ul className={styles.taskList}>
-        {insightTasks.map((task, index) => (
-          <li key={index}>
-            <span className={styles.taskIcon}>{task.icon}</span>
-            <span className={styles.taskText}>{task.text}</span>
-            <span className={styles.taskDue}>{task.due}</span>
-          </li>
-        ))}
-      </ul>
+      <p>{message}</p>
+      {tasks && tasks.length > 0 && (
+        <ul className={styles.taskList}>
+          {tasks.map((task, index) => (
+            <li key={index}>
+              <span className={styles.taskIcon}><RiFileList2Line /></span>
+              <span className={styles.taskText}>{task.text}</span>
+              <span className={styles.taskDue}>{task.due}</span>
+            </li>
+          ))}
+        </ul>
+      )}
     </div>
   );
 };
