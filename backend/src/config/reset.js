@@ -3,8 +3,8 @@
 //
 // This script contains the functions to create the databases
 // it can be executed by running "npm run reset" in the terminal open in the "backend" directory
-import { pool } from "./database.js";
-import "./dotenv.js";
+const { pool } = require("./database.js"); //import { pool } from "./database.js";
+require("./dotenv.js"); //import "./dotenv.js"
 //import fs from "fs";
 
 const tableCreationQueries = {
