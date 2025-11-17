@@ -1,52 +1,42 @@
 // Created by: Jorge Valdes-Santiago
 //
 //
-// This script contains the functions for perfoming CRUD operations on the "tasks" table
-const { pool } = require("../config/database.js"); //import { pool } from "../config/database.js";
+// This script contains the functions for perfoming CRUD operations on the "focus_sessions" table
 
-const createTask = async (req, res) => {
+// Work in progress
+
+const createFocusSession = async (req, res) => {
   // Send query to the database
   try {
     // Get parameters from HTTP POST request
     const {
       user_id,
-      goal_id,
-      title,
-      description,
-      is_urgent,
-
-      is_important,
-      target_date,
-      est_time_minutes,
-      status,
+      task_id,
+      start_time,
+      end_time,
+      duration_minutes, // NOTE: Considering removing this since it can be calculated on the front-end
     } = req.body;
 
     // Get current time
     const created_at = new Date.now().toISOString(); // Get date in UTC (this can be converted to the local timezone in the frontend)
 
-    // Query to add a new task to the tasks table
+    // Query to add a new focus session to the focus_sessions table
     const query = `
-    INSERT INTO tasks (user_id, goal_id, title, description, is_urgent, is_important, target_date, est_time_minutes, status, created_at)
-    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+    INSERT INTO focus_sessions (user_id, task_id, start_time, end_time, duration_minutes)
+    VALUES ($1, $2, $3, $4, $5)
     `;
 
     const results = await pool.query(query, [
       user_id,
-      goal_id,
-      title,
-      description,
-      is_urgent,
-
-      is_important,
-      target_date,
-      est_time_minutes,
-      status,
-      created_at,
+      task_id,
+      start_time,
+      end_time,
+      duration_minutes, // NOTE: Considering removing this since it can be calculated on the front-end
     ]);
 
     // Request successful
     res.status(201).json(results.rows[0]);
-    console.log("New task created");
+    console.log("New focus session created");
   } catch (error) {
     // Request not successful
     res.status(409).json({ error: error.message });
@@ -54,9 +44,9 @@ const createTask = async (req, res) => {
   }
 };
 
-const getTaskById = async (req, res) => {
+const getFocusSessionById = async (req, res) => {
   try {
-    const query = `SELECT * FROM tasks WHERE id = $1`;
+    const query = `SELECT * FROM focus_sessions WHERE id = $1`;
     const id = parseInt(req.params.id); // Get item id (IMPORTANT: THE PARAMETER MUST MATCH THE ONE USED IN THE routes file)
 
     const results = await pool.query(query, [id]);
@@ -69,12 +59,12 @@ const getTaskById = async (req, res) => {
   }
 };
 
-const getTasksByUserId = async (req, res) => {
+const getFocusSessionsByUserId = async (req, res) => {
   try {
-    // Get all tasks from a user id
+    // Get all focus sessions from a user id
     const { user_id } = req.body; // Get user_id from the request body
 
-    const query = `SELECT * FROM tasks WHERE user_id = $1`;
+    const query = `SELECT * FROM focus_sessions WHERE user_id = $1`;
 
     const results = await pool.query(query, [user_id]); // Send query to the database
 
@@ -86,42 +76,33 @@ const getTasksByUserId = async (req, res) => {
   }
 };
 
-const updateTask = async (req, res) => {
+const updateFocusSession = async (req, res) => {
   try {
     const id = parseInt(req.params.id); //  parse the ID from the URL parameter and convert it to an integer.
 
     // Get parameters from HTTP PATCH request
     const {
       user_id,
-      goal_id,
-      title,
-      description,
-      is_urgent,
-
-      is_important,
-      target_date,
-      est_time_minutes,
-      status,
+      task_id,
+      start_time,
+      end_time,
+      duration_minutes, // NOTE: Considering removing this since it can be calculated on the front-end
     } = req.body;
 
     const query = `
-    UPDATE tasks SET title = $1, description = $2, is_urgent = $3, 
-    is_important = $4, target_date = $5, est_time_minutes = $6, 
-    status = $7 WHERE id = $8`;
-    const results = await pool.query(query, [
-      title,
-      description,
-      is_urgent,
+    UPDATE focus_sessions SET start_time = $1, end_time = $2,
+    duration_minutes = $3 
+    WHERE id = $4`;
 
-      is_important,
-      target_date,
-      est_time_minutes,
-      status,
+    const results = await pool.query(query, [
+      start_time,
+      end_time,
+      duration_minutes, // NOTE: Considering removing this since it can be calculated on the front-end
       id,
     ]);
 
     res.status(200).json(results.rows); // Request successful, send response to client
-    console.log("Task updated");
+    console.log("Focus Session updated");
   } catch (error) {
     // Request not successful
     res.status(409).json({ error: err.message });
@@ -129,13 +110,13 @@ const updateTask = async (req, res) => {
   }
 };
 
-const deleteTask = async (req, res) => {
+const deleteFocusSession = async (req, res) => {
   try {
     const id = parseInt(req.params.id); //  parse the ID from the URL parameter and convert it to an integer.
     // (IMPORTANT: THE PARAMETER MUST MATCH THE ONE USED IN THE routes file)
 
-    // Query to delete the selected task
-    const query = `DELETE FROM tasks WHERE id = $1`;
+    // Query to delete the selected focus session
+    const query = `DELETE FROM focus_sessions WHERE id = $1`;
 
     const results = await pool.query(query, [id]);
 
@@ -149,18 +130,9 @@ const deleteTask = async (req, res) => {
 };
 
 module.exports = {
-  createTask,
-  getTaskById,
-  getTasksByUserId,
-  updateTask,
-  deleteTask,
+  createFocusSession,
+  getFocusSessionById,
+  getFocusSessionsByUserId,
+  updateFocusSession,
+  deleteFocusSession,
 };
-/*
-export default {
-  createTask,
-  getTaskById,
-  getTasksByUserId,
-  updateTask,
-  deleteTask,
-};
-*/

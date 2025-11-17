@@ -7,6 +7,10 @@ const app = express();
 const PORT = process.env.PORT || 5001;
 const insightsRoutes = require("./routes/insights.routes");
 const taskRoutes = require("./routes/tasks.routes");
+const goalRoutes = require("./routes/goals.routes");
+const habitRoutes = require("./routes/habits.routes");
+const focusSessionRoutes = require("./routes/focus-sessions.routes");
+const habitLogRoutes = require("./routes/habit-logs.routes");
 
 // Middleware
 app.use(
@@ -37,6 +41,10 @@ app.get("/api", (req, res) => {
 // TODO: Add your API routes here (e.g., app.use('/api/auth', authRoutes))
 app.use("/api/insights", insightsRoutes);
 app.use("/api/tasks", taskRoutes);
+app.use("/api/goals", goalRoutes);
+app.use("/api/habits", habitRoutes);
+app.use("/api/focus-sessions", focusSessionRoutes);
+app.use("/api/habit-logs", habitLogRoutes);
 
 app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
