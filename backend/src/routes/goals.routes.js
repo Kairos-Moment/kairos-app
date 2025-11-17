@@ -3,7 +3,7 @@
 //
 // This script contains the endpoints to the goals controller functions
 const express = require("express"); //import express from "express";
-const GoalsController = require("../controllers/goals.controller.js"); //import TasksController from "../controllers/tasks.controller.js";
+const GoalsController = require("../controllers/goals.controller.js");
 
 const router = express.Router();
 

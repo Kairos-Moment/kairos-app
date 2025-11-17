@@ -9,6 +9,7 @@ const insightsRoutes = require("./routes/insights.routes");
 const taskRoutes = require("./routes/tasks.routes");
 const goalRoutes = require("./routes/goals.routes");
 const habitRoutes = require("./routes/habits.routes");
+const focusSessionRoutes = require("./routes/focus-sessions.routes");
 
 // Middleware
 app.use(
@@ -41,6 +42,7 @@ app.use("/api/insights", insightsRoutes);
 app.use("/api/tasks", taskRoutes);
 app.use("/api/goals", goalRoutes);
 app.use("/api/habits", habitRoutes);
+app.use("/api/focus-sessions", focusSessionRoutes);
 
 app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);

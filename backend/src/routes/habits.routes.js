@@ -3,7 +3,7 @@
 //
 // This script contains the endpoints to the tasks controller functions
 const express = require("express"); //import express from "express";
-const HabitsController = require("../controllers/habits.controller.js"); //import TasksController from "../controllers/tasks.controller.js";
+const HabitsController = require("../controllers/habits.controller.js");
 
 const router = express.Router();
 
