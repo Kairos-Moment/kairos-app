@@ -8,6 +8,7 @@ const PORT = process.env.PORT || 5001;
 const insightsRoutes = require("./routes/insights.routes");
 const taskRoutes = require("./routes/tasks.routes");
 const goalRoutes = require("./routes/goals.routes");
+const habitRoutes = require("./routes/habits.routes");
 
 // Middleware
 app.use(
@@ -39,6 +40,7 @@ app.get("/api", (req, res) => {
 app.use("/api/insights", insightsRoutes);
 app.use("/api/tasks", taskRoutes);
 app.use("/api/goals", goalRoutes);
+app.use("/api/habits", habitRoutes);
 
 app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
