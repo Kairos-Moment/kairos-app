@@ -77,5 +77,6 @@ const verify = async (accessToken, refreshToken, profile, callback) => {
   }
 };
 
-const GitHub = new GitHubStrategy(options, verify); // Export the GitHub strategy
-module.exports = GitHub;
+const GitHub = new GitHubStrategy(options, verify);
+
+module.exports = { GitHub };
