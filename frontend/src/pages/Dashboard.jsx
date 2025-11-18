@@ -67,12 +67,9 @@ const Dashboard = () => {
       <Header />
 
       <main className={styles.mainContent}>
-        <OracleInsight insightData={insightData} isLoading={isLoading} />
-        <Timeline />
-
-        {/* Container for the floating action buttons */}
-        <div className={styles.actionButtonsContainer}>
-          {/* Microphone button - only renders if the browser supports the API */}
+        {/* NEW: Section for Oracle's Insight and Mic button */}
+        <div className={styles.oracleSection}>
+          <OracleInsight insightData={insightData} isLoading={isLoading} />
           {hasSupport && (
             <button
               className={`${styles.micButton} ${isListening ? styles.listening : ''}`}
@@ -82,8 +79,11 @@ const Dashboard = () => {
               <IoMic size={28} />
             </button>
           )}
+        </div>
 
-          {/* Add New Task button */}
+        {/* NEW: Section for Timeline and Add Task button */}
+        <div className={styles.timelineSection}>
+          <Timeline />
           <button
             className={styles.floatingActionButton}
             onClick={() => setIsModalOpen(true)}
@@ -92,13 +92,12 @@ const Dashboard = () => {
           </button>
         </div>
         
-        {/* Visual indicator that the app is listening */}
+        {/* Visual indicator for listening remains at the bottom */}
         {isListening && <div className={styles.transcriptOverlay}>Listening...</div>}
       </main>
 
       <BottomNav />
 
-      {/* Conditionally render the "New Task" modal */}
       {isModalOpen && <NewTaskModal onClose={() => setIsModalOpen(false)} />}
     </div>
   );
