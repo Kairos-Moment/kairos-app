@@ -1,127 +1,113 @@
-// By: Jorge Valdes-Santiago
-//
-//
-// This script contains the functions to create the databases
-// it can be executed by running "npm run reset" in the terminal open in the "backend" directory
-const { pool } = require("./database.js"); //import { pool } from "./database.js";
-require("./dotenv.js"); //import "./dotenv.js"
-//import fs from "fs";
+const { pool } = require("./database.js");
+require("./dotenv.js");
 
-const tableCreationQueries = {
-  // NOTE: The following is preferred for creating unique integer ids in newer versions of postgresql:
-  // id integer GENERATED ALWAYS AS IDENTITY PRIMARY KEY
-  users: `CREATE TABLE IF NOT EXISTS users (
-    id serial PRIMARY KEY,
-    username varchar(100) NOT NULL,
-    email varchar(100) NOT NULL,
-    password_hash varchar(255) NOT NULL,
-    created_at timestamp NOT NULL
+// All SQL queries in one place for clarity
+const SQL_QUERIES = {
+  // DROP queries in REVERSE order of creation
+  dropFocusSessions: `DROP TABLE IF EXISTS focus_sessions;`,
+  dropHabitLogs: `DROP TABLE IF EXISTS habit_logs;`,
+  dropTasks: `DROP TABLE IF EXISTS tasks;`,
+  dropHabits: `DROP TABLE IF EXISTS habits;`,
+  dropGoals: `DROP TABLE IF EXISTS goals;`,
+  dropUsers: `DROP TABLE IF EXISTS users;`,
+
+  // CREATE queries in the CORRECT order of creation
+  createUsers: `CREATE TABLE users (
+    id SERIAL PRIMARY KEY,
+    username VARCHAR(100) NOT NULL,
+    email VARCHAR(100) UNIQUE NOT NULL,
+    password_hash VARCHAR(255) NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+  );`,
+  createGoals: `CREATE TABLE goals (
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    title VARCHAR(100) NOT NULL,
+    description TEXT DEFAULT '',
+    status VARCHAR(50),
+    target_date TIMESTAMP
+  );`,
+  createHabits: `CREATE TABLE habits (
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    title VARCHAR(100) NOT NULL,
+    description TEXT DEFAULT '',
+    frequency INTEGER DEFAULT 0,
+    is_active BOOLEAN DEFAULT true,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+  );`,
+  createTasks: `CREATE TABLE tasks (
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    goal_id INTEGER REFERENCES goals(id) ON DELETE SET NULL,
+    title VARCHAR(100) NOT NULL,
+    description TEXT DEFAULT '',
+    is_urgent BOOLEAN DEFAULT false,
+    is_important BOOLEAN DEFAULT false,
+    due_date TIMESTAMP,
+    status VARCHAR(50) DEFAULT 'pending'
+  );`,
+  createHabitLogs: `CREATE TABLE habit_logs (
+    id SERIAL PRIMARY KEY,
+    habit_id INTEGER NOT NULL REFERENCES habits(id) ON DELETE CASCADE,
+    completion_date TIMESTAMP NOT NULL,
+    notes TEXT DEFAULT ''
+  );`,
+  createFocusSessions: `CREATE TABLE focus_sessions (
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    task_id INTEGER NOT NULL REFERENCES tasks(id) ON DELETE CASCADE,
+    start_time TIMESTAMP NOT NULL,
+    duration_minutes INTEGER NOT NULL
   );`,
 
-  goals: `CREATE TABLE IF NOT EXISTS goals (
-    id serial PRIMARY KEY,
-    user_id integer NOT NULL REFERENCES users(id),
-    title varchar(100) NOT NULL,
-    description text NOT NULL DEFAULT '',
-    status varchar(50) NOT NULL,
-    target_date timestamp NOT NULL,
-    created_at timestamp NOT NULL,
-    FOREIGN KEY(user_id) REFERENCES users(id)
-  );`,
-
-  habits: `CREATE TABLE IF NOT EXISTS habits (
-    id serial PRIMARY KEY,
-    user_id integer NOT NULL,
-    title varchar(100) NOT NULL,
-    description TEXT NOT NULL DEFAULT '',
-    frequency integer NOT NULL DEFAULT 0,
-    is_active boolean NOT NULL DEFAULT true,
-    created_at timestamp NOT NULL,
-    FOREIGN KEY(user_id) REFERENCES users(id)
-  );`,
-
-  tasks: `CREATE TABLE IF NOT EXISTS tasks (
-    id serial PRIMARY KEY,
-    user_id integer NOT NULL,
-    goal_id integer NOT NULL,
-    title varchar(100) NOT NULL,
-    description TEXT NOT NULL DEFAULT '',
-    is_urgent boolean NOT NULL DEFAULT false,
-    is_important boolean NOT NULL DEFAULT false,
-    target_date timestamp NOT NULL,
-    est_time_minutes time NOT NULL,
-    status varchar(50) NOT NULL,
-    created_at timestamp NOT NULL,
-    FOREIGN KEY(user_id) REFERENCES users(id),
-    FOREIGN KEY(goal_id) REFERENCES goals(id)
-  );`,
-
-  sessions: `CREATE TABLE IF NOT EXISTS focus_sessions (
-    id serial PRIMARY KEY,
-    user_id integer NOT NULL,
-    task_id integer NOT NULL,
-    start_time timestamp NOT NULL,
-    end_time timestamp NOT NULL,
-    duration_minutes INTEGER NOT NULL DEFAULT 0,
-    FOREIGN KEY(user_id) REFERENCES users(id),
-    FOREIGN KEY(task_id) REFERENCES tasks(id)
-  );`,
-
-  logs: `CREATE TABLE IF NOT EXISTS habit_logs (
-    id serial PRIMARY KEY,
-    habit_id INTEGER NOT NULL,
-    completion_date timestamp NOT NULL,
-    notes text DEFAULT '',
-    FOREIGN KEY(habit_id) REFERENCES habits(id)
-  );`,
+  // SEED data queries
+  seedUsers: `INSERT INTO users (username, email, password_hash) VALUES ('Jane Doe', 'jane.doe@example.com', 'some_hashed_password_here');`,
+  seedGoals: `INSERT INTO goals (user_id, title) VALUES (1, 'Complete Capstone Project');`,
+  seedTasks: `INSERT INTO tasks (user_id, goal_id, title, is_important) VALUES (1, 1, 'Write project documentation', true);`
 };
 
-// Base function
-const createTable = async (query, tableName) => {
-  const sqlQuery = query;
-
+// Create a single async function to control the flow
+const resetDatabase = async () => {
   try {
-    // Send query to the database and wait for a response
-    const response = await pool.query(sqlQuery);
-  } catch (err) {
-    console.error(`⚠️ Error creating ${tableName} table: ${err}`);
+    console.log("-> Dropping all tables...");
+    await pool.query(SQL_QUERIES.dropFocusSessions);
+    await pool.query(SQL_QUERIES.dropHabitLogs);
+    await pool.query(SQL_QUERIES.dropTasks);
+    await pool.query(SQL_QUERIES.dropHabits);
+    await pool.query(SQL_QUERIES.dropGoals);
+    await pool.query(SQL_QUERIES.dropUsers);
+    console.log("✅ All tables dropped successfully.");
+
+    console.log("\n-> Creating tables in order...");
+    await pool.query(SQL_QUERIES.createUsers);
+    console.log("   - Users table created.");
+    await pool.query(SQL_QUERIES.createGoals);
+    console.log("   - Goals table created.");
+    await pool.query(SQL_QUERIES.createHabits);
+    console.log("   - Habits table created.");
+    await pool.query(SQL_QUERIES.createTasks);
+    console.log("   - Tasks table created.");
+    await pool.query(SQL_QUERIES.createHabitLogs);
+    console.log("   - Habit Logs table created.");
+    await pool.query(SQL_QUERIES.createFocusSessions);
+    console.log("   - Focus Sessions table created.");
+    console.log("✅ All tables created successfully.");
+
+    console.log("\n-> Seeding database with initial data...");
+    await pool.query(SQL_QUERIES.seedUsers);
+    await pool.query(SQL_QUERIES.seedGoals);
+    await pool.query(SQL_QUERIES.seedTasks);
+    console.log("✅ Database seeded successfully.");
+
+  } catch (error) {
+    console.error("❌ An error occurred during the database reset:", error);
+  } finally {
+    // IMPORTANT: Close the connection pool so the script can exit
+    await pool.end();
+    console.log("\n-> Connection pool closed. Script finished.");
   }
-
-  const response = await pool.query(sqlQuery); // Generate
 };
 
-//----------------------------------//
-//--   Table creation functions   --//
-//----------------------------------//
-const createUsersTable = async () => {
-  createTable(tableCreationQueries.users, "Users");
-};
-
-const createGoalsTable = async () => {
-  createTable(tableCreationQueries.goals, "Goals");
-};
-
-const createHabitsTable = async () => {
-  createTable(tableCreationQueries.habits, "Habits");
-};
-
-const createTasksTable = async () => {
-  createTable(tableCreationQueries.tasks, "Tasks");
-};
-
-// For focus sessions
-const createSessionsTable = async () => {
-  createTable(tableCreationQueries.sessions, "Focus Sessions");
-};
-
-// for habit logs
-const createLogTable = async () => {
-  createTable(tableCreationQueries.logs, "Habit Logs");
-};
-
-createUsersTable();
-createGoalsTable();
-createHabitsTable();
-createTasksTable();
-createSessionsTable();
-createLogTable();
+// Run the main function
+resetDatabase();
