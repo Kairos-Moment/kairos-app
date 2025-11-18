@@ -9,12 +9,22 @@ require("./dotenv.js"); //import "./dotenv.js"
 
 const tableCreationQueries = {
   // NOTE: The following is preferred for creating unique integer ids in newer versions of postgresql:
-  // id integer GENERATED ALWAYS AS IDENTITY PRIMARY KEY
+  // id integer GENERATED ALWAYS AS IDENTITY PRIMARY
+  /*
   users: `CREATE TABLE IF NOT EXISTS users (
     id serial PRIMARY KEY,
     username varchar(100) NOT NULL,
     email varchar(100) NOT NULL,
     password_hash varchar(255) NOT NULL,
+    created_at timestamp NOT NULL
+  );`,
+  */
+  users: `CREATE TABLE IF NOT EXISTS users (
+    id serial PRIMARY KEY,
+    githubid integer NOT NULL,
+    username varchar(100) NOT NULL,
+    avatarurl varchar(500) NOT NULL,
+    accesstoken varchar(500) NOT NULL
     created_at timestamp NOT NULL
   );`,
 
