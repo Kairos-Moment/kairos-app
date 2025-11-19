@@ -47,12 +47,12 @@ const verify = async (accessToken, refreshToken, profile, callback) => {
 
     // Check if the results return a matching user. If not, create a new user profile.
     if (!user) {
-      const created_at = new Date.now().toISOString(); // Get date in UTC (this can be converted to the local timezone in the frontend)
+      const created_at = new Date().toISOString(); // Get date in UTC (this can be converted to the local timezone in the frontend)
 
       // Add a new user to the table
       const results = await pool.query(
         `INSERT INTO users (githubid, username, avatarurl, accesstoken, created_at)
-                VALUES($1, $2, $3, $4)
+                VALUES($1, $2, $3, $4, $5)
                 RETURNING *`,
         [
           userData.githubId,

@@ -1,122 +1,73 @@
 // backend/src/config/reset.js
 
-// 1. Import necessary modules
 const path = require('path');
-
-// 2. CRITICAL: Load the .env file.
-// Since the 'reset' script runs from the 'backend/' directory, we go up one level.
 require('dotenv').config({ path: path.join(process.cwd(), '../.env') });
-
-// 3. Import the pool AFTER dotenv has been configured.
 const { pool } = require("./database.js");
 
-// All SQL queries in one place for clarity
-const SQL_QUERIES = {
-  // DROP queries in REVERSE order of creation
-  dropFocusSessions: `DROP TABLE IF EXISTS focus_sessions;`,
-  dropHabitLogs: `DROP TABLE IF EXISTS habit_logs;`,
-  dropTasks: `DROP TABLE IF EXISTS tasks;`,
-  dropHabits: `DROP TABLE IF EXISTS habits;`,
-  dropGoals: `DROP TABLE IF EXISTS goals;`,
-  dropUsers: `DROP TABLE IF EXISTS users;`,
-
-  // CREATE queries in the CORRECT order of creation
-  createUsers: `CREATE TABLE users (
-    id SERIAL PRIMARY KEY,
-    username VARCHAR(100) NOT NULL,
-    email VARCHAR(100) UNIQUE NOT NULL,
-    password_hash VARCHAR(255) NOT NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-  );`,
-  createGoals: `CREATE TABLE goals (
-    id SERIAL PRIMARY KEY,
-    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    title VARCHAR(100) NOT NULL,
-    description TEXT DEFAULT '',
-    status VARCHAR(50),
-    target_date TIMESTAMP
-  );`,
-  createHabits: `CREATE TABLE habits (
-    id SERIAL PRIMARY KEY,
-    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    title VARCHAR(100) NOT NULL,
-    description TEXT DEFAULT '',
-    frequency INTEGER DEFAULT 0,
-    is_active BOOLEAN DEFAULT true,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-  );`,
-  createTasks: `CREATE TABLE tasks (
-    id SERIAL PRIMARY KEY,
-    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    goal_id INTEGER REFERENCES goals(id) ON DELETE SET NULL,
-    title VARCHAR(100) NOT NULL,
-    description TEXT DEFAULT '',
-    is_urgent BOOLEAN DEFAULT false,
-    is_important BOOLEAN DEFAULT false,
-    due_date TIMESTAMP,
-    status VARCHAR(50) DEFAULT 'pending'
-  );`,
-  createHabitLogs: `CREATE TABLE habit_logs (
-    id SERIAL PRIMARY KEY,
-    habit_id INTEGER NOT NULL REFERENCES habits(id) ON DELETE CASCADE,
-    completion_date TIMESTAMP NOT NULL,
-    notes TEXT DEFAULT ''
-  );`,
-  createFocusSessions: `CREATE TABLE focus_sessions (
-    id SERIAL PRIMARY KEY,
-    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    task_id INTEGER NOT NULL REFERENCES tasks(id) ON DELETE CASCADE,
-    start_time TIMESTAMP NOT NULL,
-    duration_minutes INTEGER NOT NULL
-  );`,
-
-  // SEED data queries
-  seedUsers: `INSERT INTO users (username, email, password_hash) VALUES ('Jane Doe', 'jane.doe@example.com', 'some_hashed_password_here');`,
-  seedGoals: `INSERT INTO goals (user_id, title) VALUES (1, 'Complete Capstone Project');`,
-  seedTasks: `INSERT INTO tasks (user_id, goal_id, title, is_important) VALUES (1, 1, 'Write project documentation', true);`
-};
-
-// Create a single async function to control the flow
 const resetDatabase = async () => {
   try {
-    console.log("-> Dropping all tables...");
-    await pool.query(SQL_QUERIES.dropFocusSessions);
-    await pool.query(SQL_QUERIES.dropHabitLogs);
-    await pool.query(SQL_QUERIES.dropTasks);
-    await pool.query(SQL_QUERIES.dropHabits);
-    await pool.query(SQL_QUERIES.dropGoals);
-    await pool.query(SQL_QUERIES.dropUsers);
+    console.log("--- Starting Database Reset ---");
+    const client = await pool.connect();
+    console.log("✅ Database connection successful.");
+
+    // --- STEP 1: DROP existing tables ---
+    console.log("\n-> Dropping all existing tables...");
+    await client.query(`
+      DROP TABLE IF EXISTS focus_sessions;
+      DROP TABLE IF EXISTS habit_logs;
+      DROP TABLE IF EXISTS tasks;
+      DROP TABLE IF EXISTS habits;
+      DROP TABLE IF EXISTS goals;
+      DROP TABLE IF EXISTS users;
+    `);
     console.log("✅ All tables dropped successfully.");
 
-    console.log("\n-> Creating tables in order...");
-    await pool.query(SQL_QUERIES.createUsers);
-    console.log("   - Users table created.");
-    await pool.query(SQL_QUERIES.createGoals);
-    console.log("   - Goals table created.");
-    await pool.query(SQL_QUERIES.createHabits);
-    console.log("   - Habits table created.");
-    await pool.query(SQL_QUERIES.createTasks);
-    console.log("   - Tasks table created.");
-    await pool.query(SQL_QUERIES.createHabitLogs);
-    console.log("   - Habit Logs table created.");
-    await pool.query(SQL_QUERIES.createFocusSessions);
-    console.log("   - Focus Sessions table created.");
+    // --- STEP 2: CREATE tables ---
+    console.log("\n-> Creating all tables...");
+    await client.query(`
+      -- CORRECTED Users Table for GitHub OAuth
+      CREATE TABLE users (
+        id SERIAL PRIMARY KEY,
+        githubid INTEGER UNIQUE NOT NULL,
+        username VARCHAR(255) UNIQUE NOT NULL,
+        avatarurl TEXT,
+        accesstoken TEXT NOT NULL,
+        created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+      );
+
+      -- Other tables remain the same, referencing users(id)
+      CREATE TABLE goals ( id SERIAL PRIMARY KEY, user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE, title VARCHAR(100) NOT NULL, description TEXT DEFAULT '', status VARCHAR(50) DEFAULT 'in_progress', target_date TIMESTAMP WITH TIME ZONE );
+      CREATE TABLE habits ( id SERIAL PRIMARY KEY, user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE, title VARCHAR(100) NOT NULL, description TEXT DEFAULT '', frequency INTEGER DEFAULT 1, is_active BOOLEAN DEFAULT true );
+      CREATE TABLE tasks ( id SERIAL PRIMARY KEY, user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE, goal_id INTEGER REFERENCES goals(id) ON DELETE SET NULL, title VARCHAR(100) NOT NULL, description TEXT DEFAULT '', is_urgent BOOLEAN DEFAULT false, is_important BOOLEAN DEFAULT false, due_date TIMESTAMP WITH TIME ZONE, status VARCHAR(50) DEFAULT 'pending' );
+      CREATE TABLE habit_logs ( id SERIAL PRIMARY KEY, habit_id INTEGER NOT NULL REFERENCES habits(id) ON DELETE CASCADE, completion_date DATE NOT NULL, notes TEXT DEFAULT '' );
+      CREATE TABLE focus_sessions ( id SERIAL PRIMARY KEY, user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE, task_id INTEGER NOT NULL REFERENCES tasks(id) ON DELETE CASCADE, start_time TIMESTAMP WITH TIME ZONE NOT NULL, duration_minutes INTEGER NOT NULL );
+    `);
     console.log("✅ All tables created successfully.");
 
+    // --- STEP 3: SEED the database ---
     console.log("\n-> Seeding database with initial data...");
-    await pool.query(SQL_QUERIES.seedUsers);
-    await pool.query(SQL_QUERIES.seedGoals);
-    await pool.query(SQL_QUERIES.seedTasks);
+    await client.query(`
+      -- CORRECTED Seeding for a sample GitHub user
+      -- This user will have id = 1
+      INSERT INTO users (githubid, username, avatarurl, accesstoken) VALUES
+      (12345, 'testuser', 'https://avatars.githubusercontent.com/u/12345?v=4', 'mock_github_access_token_string');
+
+      -- Other seed data can still reference user_id=1
+      INSERT INTO goals (user_id, title, description) VALUES (1, 'Complete Capstone Project', 'Finish all features, documentation, and presentation for the capstone.');
+      INSERT INTO tasks (user_id, goal_id, title, is_important) VALUES (1, 1, 'Write project documentation', true);
+      INSERT INTO habits (user_id, title) VALUES (1, 'Read for 20 minutes');
+    `);
     console.log("✅ Database seeded successfully.");
 
+    client.release();
+    console.log("\n--- Database Reset Complete ---");
+
   } catch (error) {
-    console.error("❌ An error occurred during the database reset:", error);
+    console.error("\n❌ An error occurred during the database reset:", error);
   } finally {
-    // IMPORTANT: Close the connection pool so the script can exit
     await pool.end();
-    console.log("\n-> Connection pool closed. Script finished.");
+    console.log("\n-> Database connection pool closed.");
   }
 };
 
-// Run the main function
 resetDatabase();
