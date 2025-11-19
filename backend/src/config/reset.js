@@ -5,6 +5,12 @@ require('dotenv').config({ path: path.join(process.cwd(), '../.env') });
 const { pool } = require("./database.js");
 
 const resetDatabase = async () => {
+  // SAFETY CHECK: Abort if not in a development environment.
+  if (process.env.NODE_ENV === 'production') {
+    console.error("❌ DANGER: REFUSING TO RUN reset.js IN A PRODUCTION ENVIRONMENT.");
+    console.error("Set NODE_ENV to 'development' if you are sure you want to do this.");
+    return; // Stop the script
+  }
   try {
     console.log("--- Starting Database Reset ---");
     const client = await pool.connect();
