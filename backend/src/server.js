@@ -15,8 +15,7 @@ const habitLogRoutes = require("./routes/habit-logs.routes");
 // Middleware
 app.use(
   cors({
-    origin: "http://localhost:5173", // Your frontend URL in development
-    // For production, you'll change this to your deployed frontend URL
+    origin: process.env.CORS_ORIGIN,
   })
 );
 app.use(express.json());
@@ -26,7 +25,7 @@ app.get("/", (req, res) => {
   res
     .status(200)
     .send(
-      '<h1 style="text-align: center; margin-top: 50px;">Welcome to Kronos API!</h1>'
+      '<h1 style="text-align: center; margin-top: 50px;">Welcome to Kairos API!</h1>'
     );
 });
 
@@ -34,7 +33,7 @@ app.get("/api", (req, res) => {
   res
     .status(200)
     .send(
-      '<h1 style="text-align: center; margin-top: 50px;">Kronos API Endpoint</h1>'
+      '<h1 style="text-align: center; margin-top: 50px;">Kairos API Endpoint</h1>'
     );
 });
 

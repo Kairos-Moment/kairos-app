@@ -1,8 +1,8 @@
 const express = require('express');
 const router = express.Router();
-const { getInsights, getWeeklyReport } = require('../controllers/insights.controller');
+const { getOracleInsight } = require('../controllers/insights.controller');
 
-router.get('/', getInsights);
-router.get('/weekly', getWeeklyReport); // New route for the weekly report
+// Defines the route: GET /api/insights/
+router.get('/', getOracleInsight);
 
 module.exports = router;

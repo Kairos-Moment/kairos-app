@@ -5,4 +5,4 @@
 const dotenv = require("dotenv"); //import dotenv from "dotenv";
 
 // Configure dotenv with a custom path
-dotenv.config({ path: "../../.env" });
+dotenv.config({ path: "../../../.env" });

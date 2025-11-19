@@ -33,26 +33,24 @@ const Dashboard = () => {
     hasSupport,
   } = useSpeechRecognition();
 
-  // Effect hook to fetch Oracle insights when the component mounts
+  // This useEffect fetches the live data from your new API endpoint
   useEffect(() => {
     const fetchInsights = async () => {
       try {
         setIsLoading(true);
+        // This makes the call to GET /api/insights
         const response = await apiClient.get('/insights');
         setInsightData(response.data);
-      } catch (error)
-      {
+      } catch (error) {
         console.error("Failed to fetch Oracle insights:", error);
-        // Set a default error state so the UI doesn't break
-        setInsightData({ message: 'Could not load insights at the moment.', tasks: [] });
-      } finally
-      {
+        setInsightData({ message: 'Could not load insights right now.', tasks: [] });
+      } finally {
         setIsLoading(false);
       }
     };
 
     fetchInsights();
-  }, []); // The empty array [] ensures this effect runs only once
+  }, []); // Empty array means this runs once on component mount
 
   // Effect hook to process the voice command after the user has finished speaking
   useEffect(() => {

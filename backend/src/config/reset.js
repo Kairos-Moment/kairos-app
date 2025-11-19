@@ -1,5 +1,14 @@
+// backend/src/config/reset.js
+
+// 1. Import necessary modules
+const path = require('path');
+
+// 2. CRITICAL: Load the .env file.
+// Since the 'reset' script runs from the 'backend/' directory, we go up one level.
+require('dotenv').config({ path: path.join(process.cwd(), '../.env') });
+
+// 3. Import the pool AFTER dotenv has been configured.
 const { pool } = require("./database.js");
-require("./dotenv.js");
 
 // All SQL queries in one place for clarity
 const SQL_QUERIES = {
