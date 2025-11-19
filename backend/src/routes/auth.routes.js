@@ -1,56 +1,61 @@
-// Created by: Jorge Valdes-Santiago
-//
-//
-// This script sets up the routes to the functions that handle user authentication and logout
+// backend/src/routes/auth.routes.js
+
 const express = require("express");
 const passport = require("passport");
 const router = express.Router();
 
-// HTTP GET /auth/login/success
+// This is a useful endpoint for the frontend to check if a user is logged in
 router.get("/login/success", (req, res) => {
   if (req.user) {
+    // req.user is populated by Passport's deserializeUser function
     res.status(200).json({ success: true, user: req.user });
+  } else {
+    res.status(401).json({ success: false, message: "User is not authenticated" });
   }
 });
 
-// HTTP GET /auth/login/failed
+// This endpoint is less commonly used, as the failureRedirect handles it
 router.get("/login/failed", (req, res) => {
-  res.status(401).json({ success: true, message: "failure" });
+  res.status(401).json({ success: false, message: "Login failure" });
 });
 
-// HTTP GET /auth/logout
+// The logout route is well-made, no changes needed
 router.get("/logout", (req, res, next) => {
   req.logout((err) => {
     if (err) {
-      //  If an error occurs during the logout process, pass the error to the next middleware function.
-      return next(error);
+      return next(err);
     }
-
-    // Remove the session data from the session store
     req.session.destroy((err) => {
-      res.clearCookie("connect.sid"); // Clear cookie
-      res.json({ status: "logout", user: {} });
+      if (err) {
+        return next(err);
+      }
+      res.clearCookie("connect.sid"); // Clear the session cookie
+      res.status(200).json({ status: "logout", message: "User logged out successfully." });
     });
   });
 });
 
 // Authenticate user via GitHub
-// HTTP GET /auth/github
 router.get(
   "/github",
   passport.authenticate("github", {
-    scope: ["read:user"],
+    scope: ["read:user"], // The scope requests permission to read user profile data
   })
 );
 
-const CLIENT_URL = process.env.CLIENT_URL || "http://localhost:5173"; // To redirect users to the client page after login attempt
+// CHANGED: Standardized the environment variable to use CORS_ORIGIN
+// This ensures we have a single source of truth for the frontend URL.
+const FRONTEND_URL = process.env.CORS_ORIGIN || "http://localhost:5173";
 
-// HTTP GET /auth/github/callback
+// The callback route GitHub redirects to after authentication
 router.get(
   "/github/callback",
   passport.authenticate("github", {
-    successRedirect: `${CLIENT_URL}`, // If successful login, redirect user to this page
-    failureRedirect: `${CLIENT_URL}/destinations`, // If unsuccessful, redirect user to this page
+    // If successful login, redirect user to the frontend's root/dashboard page
+    successRedirect: FRONTEND_URL,
+    
+    // IMPROVED: If unsuccessful, redirect user back to the frontend's login page
+    failureRedirect: `${FRONTEND_URL}/login`,
   })
 );
 
