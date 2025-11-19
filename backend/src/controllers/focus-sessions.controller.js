@@ -1,17 +1,23 @@
 // backend/src/controllers/focus-sessions.controller.js
 
 const { pool } = require("../config/database.js");
-const { differenceInMinutes } = require('date-fns');
+const { differenceInMinutes } = require('date-fns'); // Ensure 'date-fns' is in backend/package.json
 
 /**
- * Creates a new focus session for a task owned by the logged-in user.
+ * Creates a new focus session for a task owned by the currently logged-in user.
+ * It calculates the duration on the backend for reliability.
  */
 const createFocusSession = async (req, res) => {
   try {
     const userId = req.user.id;
-    const { task_id, start_time, end_time } = req.body;
+    const { task_id, start_time, end_time, notes } = req.body;
 
-    // SECURITY CHECK: First, verify that the task for this session belongs to the current user.
+    // Validate that required fields are present
+    if (!task_id || !start_time || !end_time) {
+      return res.status(400).json({ message: "task_id, start_time, and end_time are required." });
+    }
+
+    // SECURITY CHECK: Verify that the task being logged against belongs to the current user.
     const taskCheckQuery = `SELECT id FROM tasks WHERE id = $1 AND user_id = $2`;
     const taskCheckResult = await pool.query(taskCheckQuery, [task_id, userId]);
 
@@ -19,16 +25,16 @@ const createFocusSession = async (req, res) => {
       return res.status(403).json({ message: "Forbidden: You do not own the parent task." });
     }
     
-    // BACKEND CALCULATION: Calculate duration reliably on the backend.
+    // SERVER-SIDE CALCULATION: Calculate duration reliably.
     const duration_minutes = differenceInMinutes(new Date(end_time), new Date(start_time));
     if (duration_minutes < 0) {
         return res.status(400).json({ message: "End time cannot be before start time." });
     }
 
-    // If the check passes, proceed to insert the session.
+    // Proceed to insert the session.
     const insertQuery = `
-      INSERT INTO focus_sessions (user_id, task_id, start_time, end_time, duration_minutes)
-      VALUES ($1, $2, $3, $4, $5)
+      INSERT INTO focus_sessions (user_id, task_id, start_time, end_time, duration_minutes, notes)
+      VALUES ($1, $2, $3, $4, $5, $6)
       RETURNING *;
     `;
     const results = await pool.query(insertQuery, [
@@ -37,13 +43,14 @@ const createFocusSession = async (req, res) => {
       start_time,
       end_time,
       duration_minutes,
+      notes || '', // Default to an empty string if notes are not provided
     ]);
 
     res.status(201).json(results.rows[0]);
     console.log(`New focus session created for user ${userId} on task ${task_id}`);
   } catch (error) {
-    res.status(500).json({ error: error.message });
-    console.log("Error creating focus session:", error.message);
+    console.error("Error creating focus session:", error);
+    res.status(500).json({ error: "An internal server error occurred." });
   }
 };
 
@@ -53,15 +60,47 @@ const createFocusSession = async (req, res) => {
 const getFocusSessionsByUserId = async (req, res) => {
   try {
     const userId = req.user.id;
-
-    // The query is simple because the table already has a user_id column.
     const query = `SELECT * FROM focus_sessions WHERE user_id = $1 ORDER BY start_time DESC`;
     const results = await pool.query(query, [userId]);
-
     res.status(200).json(results.rows);
   } catch (error) {
-    res.status(500).json({ error: error.message });
-    console.log("Error getting focus sessions by user ID:", error.message);
+    console.error("Error getting focus sessions:", error);
+    res.status(500).json({ error: "An internal server error occurred." });
+  }
+};
+
+/**
+ * Updates the 'notes' of an existing focus session, ensuring it belongs to the logged-in user.
+ */
+const updateFocusSession = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const sessionId = parseInt(req.params.id);
+    const { notes } = req.body;
+
+    // Validate that 'notes' is provided
+    if (typeof notes === 'undefined') {
+        return res.status(400).json({ message: "The 'notes' field is required for an update." });
+    }
+
+    // SECURITY: The WHERE clause checks both session ID and user ID before updating.
+    const query = `
+      UPDATE focus_sessions 
+      SET notes = $1
+      WHERE id = $2 AND user_id = $3
+      RETURNING *;
+    `;
+    const results = await pool.query(query, [notes, sessionId, userId]);
+
+    if (results.rows.length === 0) {
+      return res.status(404).json({ message: "Focus session not found or you do not have permission to edit it." });
+    }
+
+    res.status(200).json(results.rows[0]);
+    console.log(`Focus session ${sessionId} updated for user ${userId}`);
+  } catch (error) {
+    console.error("Error updating focus session:", error);
+    res.status(500).json({ error: "An internal server error occurred." });
   }
 };
 
@@ -73,7 +112,7 @@ const deleteFocusSession = async (req, res) => {
     const userId = req.user.id;
     const sessionId = parseInt(req.params.id);
 
-    // SECURITY: The WHERE clause checks both session ID and user ID before deleting.
+    // SECURITY: The WHERE clause checks both session ID and user ID.
     const query = `DELETE FROM focus_sessions WHERE id = $1 AND user_id = $2`;
     const results = await pool.query(query, [sessionId, userId]);
 
@@ -83,17 +122,14 @@ const deleteFocusSession = async (req, res) => {
     
     res.status(200).json({ message: `Focus session with ID ${sessionId} deleted successfully.` });
   } catch (error) {
-    res.status(500).json({ error: error.message });
-    console.log("Error deleting focus session:", error.message);
+    console.error("Error deleting focus session:", error);
+    res.status(500).json({ error: "An internal server error occurred." });
   }
 };
-
-// NOTE: getFocusSessionById and updateFocusSession are generally not needed for this resource.
-// A session is a historical record and typically shouldn't be updated.
-// If needed, they can be implemented with similar security checks.
 
 module.exports = {
   createFocusSession,
   getFocusSessionsByUserId,
+  updateFocusSession,
   deleteFocusSession,
 };

@@ -85,7 +85,7 @@ export const AuthProvider = ({ children }) => {
   // However, you could have a placeholder function if needed.
   const login = () => {
     const backendUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5001/api';
-    window.location.href = `${backendUrl}/auth/github`;
+    window.location.href = `${backendUrl}/api/auth/github`;
   };
 
   // 3. The value object that will be provided to all consuming components.

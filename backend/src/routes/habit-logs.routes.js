@@ -1,28 +1,46 @@
-// Created by: Jorge Valdes-Santiago
-//
-//
-// This script contains the endpoints to the habit_logs controller functions
-const express = require("express"); //import express from "express";
-const HabitLogsController = require("../controllers/habit-logs.controller.js");
+// backend/src/routes/habit-logs.routes.js
+
+const express = require('express');
 const router = express.Router();
 const { ensureAuthenticated } = require('../middleware/auth.middleware');
 
+// Import all the controller functions we need
+const {
+  createHabitLog,
+  getHabitLogsByHabitId,
+  updateHabitLog,
+  deleteHabitLog
+} = require('../controllers/habit-logs.controller');
+
+// Apply security middleware to all routes in this file
 router.use(ensureAuthenticated);
 
+/**
+ * @route   POST /api/habit-logs
+ * @desc    Create a new log for a habit.
+ * @access  Private
+ */
+router.post('/', createHabitLog);
 
-// HTTP GET /api/habit-logs/
-router.get("/", HabitLogsController.getHabitLogsByHabitId);
+/**
+ * @route   GET /api/habit-logs/habit/:habitId
+ * @desc    Get all logs for a specific habit owned by the user.
+ * @access  Private
+ */
+router.get('/habit/:habitId', getHabitLogsByHabitId);
 
-// HTTP POST /api/habit-logs
-router.post("/", HabitLogsController.createHabitLog);
+/**
+ * @route   PATCH /api/habit-logs/:id
+ * @desc    Update the notes on a specific habit log.
+ * @access  Private
+ */
+router.patch('/:id', updateHabitLog);
 
-// HTTP GET /api/habit-logs/:id
-router.get("/:id", HabitLogsController.getHabitLogById);
+/**
+ * @route   DELETE /api/habit-logs/:id
+ * @desc    Delete a specific habit log.
+ * @access  Private
+ */
+router.delete('/:id', deleteHabitLog);
 
-// HTTP PATCH /api/habit-logs/:id
-router.patch("/:id", HabitLogsController.updateHabitLog);
-
-// HTTP DELETE /api/habit-logs/:id
-router.delete("/:id", HabitLogsController.deleteHabitLog);
-
-module.exports = router; //export default router;
+module.exports = router;

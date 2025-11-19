@@ -46,7 +46,7 @@ const resetDatabase = async () => {
       CREATE TABLE habits ( id SERIAL PRIMARY KEY, user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE, title VARCHAR(100) NOT NULL, description TEXT DEFAULT '', frequency INTEGER DEFAULT 1, is_active BOOLEAN DEFAULT true );
       CREATE TABLE tasks ( id SERIAL PRIMARY KEY, user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE, goal_id INTEGER REFERENCES goals(id) ON DELETE SET NULL, title VARCHAR(100) NOT NULL, description TEXT DEFAULT '', is_urgent BOOLEAN DEFAULT false, is_important BOOLEAN DEFAULT false, due_date TIMESTAMP WITH TIME ZONE, status VARCHAR(50) DEFAULT 'pending' );
       CREATE TABLE habit_logs ( id SERIAL PRIMARY KEY, habit_id INTEGER NOT NULL REFERENCES habits(id) ON DELETE CASCADE, completion_date DATE NOT NULL, notes TEXT DEFAULT '' );
-      CREATE TABLE focus_sessions ( id SERIAL PRIMARY KEY, user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE, task_id INTEGER NOT NULL REFERENCES tasks(id) ON DELETE CASCADE, start_time TIMESTAMP WITH TIME ZONE NOT NULL, duration_minutes INTEGER NOT NULL );
+      CREATE TABLE focus_sessions ( id SERIAL PRIMARY KEY, user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE, task_id INTEGER NOT NULL REFERENCES tasks(id) ON DELETE CASCADE, start_time TIMESTAMP WITH TIME ZONE NOT NULL, duration_minutes INTEGER NOT NULL, notes TEXT DEFAULT '' );
     `);
     console.log("✅ All tables created successfully.");
 
