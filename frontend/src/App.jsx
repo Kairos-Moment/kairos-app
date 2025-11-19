@@ -1,6 +1,6 @@
 // frontend/src/App.jsx
-import { Routes, Route } from 'react-router-dom';
-import Dashboard from './pages/Dashboard';
+import { Routes, Route } from "react-router-dom";
+import Dashboard from "./pages/Dashboard";
 
 function App() {
   return (
