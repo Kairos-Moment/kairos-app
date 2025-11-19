@@ -88,7 +88,7 @@ const goalRoutes = require("./routes/goals.routes");
 const habitRoutes = require("./routes/habits.routes");
 const focusSessionRoutes = require("./routes/focus-sessions.routes");
 const habitLogRoutes = require("./routes/habit-logs.routes");
-const authRoutes = = require("./routes/auth.routes.js");
+const authRoutes = require("./routes/auth.routes.js");
 
 app.use("/api/insights", insightsRoutes);
 app.use("/api/tasks", taskRoutes);
