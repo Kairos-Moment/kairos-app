@@ -4,8 +4,11 @@
 // This script contains the endpoints to the goals controller functions
 const express = require("express"); //import express from "express";
 const GoalsController = require("../controllers/goals.controller.js");
-
 const router = express.Router();
+const { ensureAuthenticated } = require('../middleware/auth.middleware');
+
+router.use(ensureAuthenticated);
+
 
 // HTTP GET /api/goals/
 router.get("/", GoalsController.getGoalsByUserId);

@@ -1,116 +1,143 @@
-// Created by: Jorge Valdes-Santiago
-//
-//
-// This script contains the functions for perfoming CRUD operations on the "goals" table
+// backend/src/controllers/habits.controller.js
 
-const { pool } = require("../config/database.js"); //import { pool } from "../config/database.js";
+const { pool } = require("../config/database.js");
 
+/**
+ * Creates a new habit for the currently logged-in user.
+ */
 const createHabit = async (req, res) => {
   try {
-    // Get parameters from HTTP POST request
-    const { user_id, title, description, frequency, is_active } = req.body;
+    // SECURITY: Get the user ID from the authenticated session.
+    const userId = req.user.id;
+    
+    // Get habit details from the request body.
+    const { title, description, frequency, is_active } = req.body;
 
-    // Get current time
-    const created_at = new Date.now().toISOString(); // Get date in UTC (this can be converted to the local timezone in the frontend)
-
-    // Query to add a new habit to the habits table
+    // The 'created_at' column is handled by the database default.
     const query = `
-    INSERT INTO habits (user_id, title, description, frequency, is_active, created_at)
-    VALUES ($1, $2, $3, $4, $5, $6)
+      INSERT INTO habits (user_id, title, description, frequency, is_active)
+      VALUES ($1, $2, $3, $4, $5)
+      RETURNING *; -- Return the newly created habit
     `;
 
-    // Send query to the database
     const results = await pool.query(query, [
-      user_id,
+      userId, // Use the secure user ID from the session
       title,
       description,
       frequency,
       is_active,
-      created_at,
     ]);
 
-    // Request successful
     res.status(201).json(results.rows[0]);
-    console.log("New habit created");
-  } catch (err) {
-    // Request not successful
-    res.status(409).json({ error: error.message });
-    console.log("Error:", error.message);
+    console.log(`New habit created for user ${userId}`);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+    console.log("Error creating habit:", error.message);
   }
 };
 
+/**
+ * Fetches a single habit by its ID, ensuring it belongs to the logged-in user.
+ */
 const getHabitById = async (req, res) => {
   try {
-    const query = `SELECT * FROM habits asks WHERE id = $1`;
-    const id = parseInt(req.params.id); // Get item id (IMPORTANT: THE PARAMETER MUST MATCH THE ONE USED IN THE routes file)
+    const userId = req.user.id;
+    const habitId = parseInt(req.params.id);
 
-    const results = await pool.query(query, [id]);
+    // BUG FIX: Removed "asks" typo from the original query.
+    // SECURITY: The query now checks BOTH the habit ID and the user ID.
+    const query = `SELECT * FROM habits WHERE id = $1 AND user_id = $2`;
+    const results = await pool.query(query, [habitId, userId]);
 
-    res.status(200).json(results.rows[0]); // Request successful, send message to client
-  } catch (err) {
-    // Request not successful
-    res.status(409).json({ error: error.message });
-    console.log("Error:", error.message);
+    if (results.rows.length === 0) {
+      return res.status(404).json({ message: "Habit not found." });
+    }
+
+    res.status(200).json(results.rows[0]);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+    console.log("Error getting habit by ID:", error.message);
   }
 };
 
+/**
+ * Fetches all habits for the currently logged-in user.
+ */
 const getHabitsByUserId = async (req, res) => {
   try {
-    // Get all habits from a user id
-    const { user_id } = req.body; // Get user_id from the request body
+    // SECURITY: Get user ID from the session, not the request body.
+    const userId = req.user.id;
 
-    const query = `SELECT * FROM habits WHERE user_id = $1`;
+    const query = `SELECT * FROM habits WHERE user_id = $1 ORDER BY id ASC`;
+    const results = await pool.query(query, [userId]);
 
-    const results = await pool.query(query, [user_id]); // Send query to the database
-
-    res.status(200).json(results.rows); // Request successful, send data to client
-  } catch (err) {
-    // Request not successful
-    res.status(409).json({ error: error.message });
-    console.log("Error:", error.message);
+    res.status(200).json(results.rows);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+    console.log("Error getting habits by user ID:", error.message);
   }
 };
 
+/**
+ * Updates an existing habit, ensuring it belongs to the logged-in user.
+ */
 const updateHabit = async (req, res) => {
   try {
-    const id = parseInt(req.params.id); //  parse the ID from the URL parameter and convert it to an integer.
+    const userId = req.user.id;
+    const habitId = parseInt(req.params.id);
+    const { title, description, frequency, is_active } = req.body;
 
-    // Get parameters from HTTP PATCH request
-    const { user_id, title, description, frequency, is_active } = req.body;
-
+    // BUG FIX: The original query was updating the 'tasks' table instead of 'habits'.
+    // SECURITY: The WHERE clause checks both habit ID and user ID before updating.
     const query = `
-    UPDATE tasks SET title = $1, description = $2, frequency = $3, 
-    is_active = $4 WHERE id = $5`;
+      UPDATE habits 
+      SET title = $1, description = $2, frequency = $3, is_active = $4 
+      WHERE id = $5 AND user_id = $6
+      RETURNING *; -- Return the updated habit
+    `;
     const results = await pool.query(query, [
       title,
       description,
       frequency,
       is_active,
-      id,
+      habitId,
+      userId,
     ]);
 
-    res.status(200).json(results.rows); // Request successful, send response to client
-    console.log("Task updated");
-  } catch (err) {
-    // Request not successful
-    res.status(409).json({ error: error.message });
-    console.log("Error:", error.message);
+    if (results.rows.length === 0) {
+      return res.status(404).json({ message: "Habit not found or you do not have permission to edit it." });
+    }
+
+    res.status(200).json(results.rows[0]);
+    console.log(`Habit ${habitId} updated for user ${userId}`);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+    console.log("Error updating habit:", error.message);
   }
 };
 
+/**
+ * Deletes a habit, ensuring it belongs to the logged-in user.
+ */
 const deleteHabit = async (req, res) => {
   try {
-    const id = parseInt(req.params.id); //  parse the ID from the URL parameter and convert it to an integer.
-    // (IMPORTANT: THE PARAMETER MUST MATCH THE ONE USED IN THE routes file)
+    const userId = req.user.id;
+    const habitId = parseInt(req.params.id);
 
-    // Query to delete the selected habit
-    const query = `DELETE FROM habits WHERE id = $1`;
+    // SECURITY: The WHERE clause checks both habit ID and user ID before deleting.
+    const query = `DELETE FROM habits WHERE id = $1 AND user_id = $2`;
+    const results = await pool.query(query, [habitId, userId]);
 
-    const results = await pool.query(query, [id]);
-  } catch (err) {
-    // Request not successful
-    res.status(409).json({ error: error.message });
-    console.log("Error:", error.message);
+    if (results.rowCount === 0) {
+      // If no rows were deleted, the habit didn't exist or didn't belong to the user.
+      return res.status(404).json({ message: "Habit not found or you do not have permission to delete it." });
+    }
+    
+    // BUG FIX: The original function did not send a response on success.
+    res.status(200).json({ message: `Habit with ID ${habitId} deleted successfully.` });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+    console.log("Error deleting habit:", error.message);
   }
 };
 

@@ -4,8 +4,10 @@
 // This script contains the endpoints to the tasks controller functions
 const express = require("express"); //import express from "express";
 const HabitsController = require("../controllers/habits.controller.js");
-
 const router = express.Router();
+const { ensureAuthenticated } = require('../middleware/auth.middleware');
+
+router.use(ensureAuthenticated);
 
 // HTTP GET /api/habits/
 router.get("/", HabitsController.getHabitsByUserId);

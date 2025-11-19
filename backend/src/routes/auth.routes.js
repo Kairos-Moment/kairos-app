@@ -3,59 +3,74 @@
 const express = require("express");
 const passport = require("passport");
 const router = express.Router();
+const { ensureAuthenticated } = require('../middleware/auth.middleware'); // Import the security guard
 
-// This is a useful endpoint for the frontend to check if a user is logged in
-router.get("/login/success", (req, res) => {
-  if (req.user) {
-    // req.user is populated by Passport's deserializeUser function
-    res.status(200).json({ success: true, user: req.user });
-  } else {
-    res.status(401).json({ success: false, message: "User is not authenticated" });
-  }
+// --- PROTECTED ROUTES ---
+// These routes should only work if the user is ALREADY authenticated.
+
+/**
+ * @route GET /api/auth/login/success
+ * @description Frontend calls this endpoint to check session status and get user data.
+ * The `ensureAuthenticated` middleware acts as the guard.
+ */
+router.get("/login/success", ensureAuthenticated, (req, res) => {
+  // If ensureAuthenticated passes, we know req.user exists.
+  res.status(200).json({
+    success: true,
+    message: "User is authenticated.",
+    user: req.user // Send back the user data from the session
+  });
 });
 
-// This endpoint is less commonly used, as the failureRedirect handles it
-router.get("/login/failed", (req, res) => {
-  res.status(401).json({ success: false, message: "Login failure" });
-});
-
-// The logout route is well-made, no changes needed
-router.get("/logout", (req, res, next) => {
+/**
+ * @route GET /api/auth/logout
+ * @description Logs out the current user.
+ * The `ensureAuthenticated` middleware ensures only logged-in users can logout.
+ */
+router.get("/logout", ensureAuthenticated, (req, res, next) => {
   req.logout((err) => {
     if (err) {
-      return next(err);
+      return next(err); // Pass any errors to the error handler
     }
+    // Destroy the session in the database
     req.session.destroy((err) => {
       if (err) {
         return next(err);
       }
-      res.clearCookie("connect.sid"); // Clear the session cookie
-      res.status(200).json({ status: "logout", message: "User logged out successfully." });
+      // Clear the browser cookie and send a success response
+      res.clearCookie("connect.sid");
+      res.status(200).json({ success: true, message: "User logged out successfully." });
     });
   });
 });
 
-// Authenticate user via GitHub
+// --- PUBLIC ROUTES ---
+// These routes are the entry points for the authentication process and MUST be public.
+
+/**
+ * @route GET /api/auth/github
+ * @description The user is redirected here from the frontend to start the GitHub login process.
+ */
 router.get(
   "/github",
   passport.authenticate("github", {
-    scope: ["read:user"], // The scope requests permission to read user profile data
+    scope: ["read:user"], // The permission we ask from the user on GitHub
   })
 );
 
-// CHANGED: Standardized the environment variable to use CORS_ORIGIN
-// This ensures we have a single source of truth for the frontend URL.
+// Standardized environment variable for the frontend URL
 const FRONTEND_URL = process.env.CORS_ORIGIN || "http://localhost:5173";
 
-// The callback route GitHub redirects to after authentication
+/**
+ * @route GET /api/auth/github/callback
+ * @description The route GitHub redirects to after the user approves or denies the app.
+ * Passport's `authenticate` function handles the logic. It does NOT need our middleware.
+ */
 router.get(
   "/github/callback",
   passport.authenticate("github", {
-    // If successful login, redirect user to the frontend's root/dashboard page
-    successRedirect: FRONTEND_URL,
-    
-    // IMPROVED: If unsuccessful, redirect user back to the frontend's login page
-    failureRedirect: `${FRONTEND_URL}/login`,
+    successRedirect: FRONTEND_URL, // On success, send user to the dashboard
+    failureRedirect: `${FRONTEND_URL}/login`, // On failure, send user back to the login page
   })
 );
 

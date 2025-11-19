@@ -1,108 +1,104 @@
-// Created by: Jorge Valdes-Santiago
-//
-//
-// This script contains the functions for perfoming CRUD operations on the "habit_logs" table
-const { pool } = require("../config/database.js"); //import { pool } from "../config/database.js";
+// backend/src/controllers/habit-logs.controller.js
 
+const { pool } = require("../config/database.js");
+
+/**
+ * Creates a new log for a habit, but only if the user owns the parent habit.
+ */
 const createHabitLog = async (req, res) => {
-  // Send query to the database
   try {
-    // Get parameters from HTTP POST request
+    const userId = req.user.id;
     const { habit_id, completion_date, notes } = req.body;
 
-    // Query to add a new habit log to the habit_logs table
-    const query = `
-    INSERT INTO habit_logs (habit_id, completion_date, notes)
-    VALUES ($1, $2, $3)
+    // SECURITY CHECK: First, verify that the habit being logged belongs to the current user.
+    const habitCheckQuery = `SELECT id FROM habits WHERE id = $1 AND user_id = $2`;
+    const habitCheckResult = await pool.query(habitCheckQuery, [habit_id, userId]);
+
+    if (habitCheckResult.rows.length === 0) {
+      return res.status(403).json({ message: "Forbidden: You do not own the parent habit." });
+    }
+
+    // If the check passes, proceed to insert the log.
+    const insertQuery = `
+      INSERT INTO habit_logs (habit_id, completion_date, notes)
+      VALUES ($1, $2, $3)
+      RETURNING *;
     `;
+    const results = await pool.query(insertQuery, [habit_id, completion_date, notes]);
 
-    const results = await pool.query(query, [habit_id, completion_date, notes]);
-
-    // Request successful
     res.status(201).json(results.rows[0]);
-    console.log("New habit log created");
+    console.log(`New habit log created for habit ${habit_id}`);
   } catch (error) {
-    // Request not successful
-    res.status(409).json({ error: error.message });
-    console.log("Error:", error.message);
+    // Check for unique constraint violation (logging the same habit on the same day)
+    if (error.code === '23505') {
+      return res.status(409).json({ message: "A log for this habit already exists on this date." });
+    }
+    res.status(500).json({ error: error.message });
+    console.log("Error creating habit log:", error.message);
   }
 };
 
-const getHabitLogById = async (req, res) => {
-  try {
-    const query = `SELECT * FROM habit_logs WHERE id = $1`;
-    const id = parseInt(req.params.id); // Get item id (IMPORTANT: THE PARAMETER MUST MATCH THE ONE USED IN THE routes file)
-
-    const results = await pool.query(query, [id]);
-
-    res.status(200).json(results.rows[0]); // Request successful, send message to client
-  } catch (error) {
-    // Request not successful
-    res.status(409).json({ error: err.message });
-    console.log("Error:", error.message);
-  }
-};
-
+/**
+ * Fetches all logs for a specific habit, but only if the user owns that habit.
+ */
 const getHabitLogsByHabitId = async (req, res) => {
   try {
-    // Get all habit logs from a habit id
-    const { habit_id } = req.body; // Get habit_id from the request body
+    const userId = req.user.id;
+    // Get habit_id from URL parameters, which is better REST practice.
+    const habitId = parseInt(req.params.habitId); 
 
-    const query = `SELECT * FROM habit_logs WHERE habit_id = $1`;
-
-    const results = await pool.query(query, [habit_id]); // Send query to the database
-
-    res.status(200).json(results.rows); // Request successful, send data to client
-  } catch (error) {
-    // Request not successful
-    res.status(409).json({ error: err.message });
-    console.log("Error:", error.message);
-  }
-};
-
-const updateHabitLog = async (req, res) => {
-  try {
-    const id = parseInt(req.params.id); //  parse the ID from the URL parameter and convert it to an integer.
-
-    // Get parameters from HTTP PATCH request
-    const { habit_id, completion_date, notes } = req.body;
-
+    // SECURITY CHECK: Use a JOIN to fetch logs only if the parent habit's user_id matches.
     const query = `
-    UPDATE habit_logs SET notes = $1 WHERE id = $2`;
-    const results = await pool.query(query, [notes, id]);
+      SELECT hl.* FROM habit_logs hl
+      JOIN habits h ON hl.habit_id = h.id
+      WHERE hl.habit_id = $1 AND h.user_id = $2
+      ORDER BY hl.completion_date DESC;
+    `;
+    const results = await pool.query(query, [habitId, userId]);
 
-    res.status(200).json(results.rows); // Request successful, send response to client
-    console.log("Habit Log updated");
+    // It's not an error to have zero logs, so we just return the (possibly empty) array.
+    res.status(200).json(results.rows);
   } catch (error) {
-    // Request not successful
-    res.status(409).json({ error: err.message });
-    console.log("Error:", error.message);
+    res.status(500).json({ error: error.message });
+    console.log("Error getting habit logs by habit ID:", error.message);
   }
 };
 
+/**
+ * Deletes a habit log, ensuring the user owns the parent habit.
+ */
 const deleteHabitLog = async (req, res) => {
   try {
-    const id = parseInt(req.params.id); //  parse the ID from the URL parameter and convert it to an integer.
-    // (IMPORTANT: THE PARAMETER MUST MATCH THE ONE USED IN THE routes file)
+    const userId = req.user.id;
+    const logId = parseInt(req.params.id);
 
-    // Query to delete the selected habit log
-    const query = `DELETE FROM habit_logs WHERE id = $1`;
+    // SECURITY CHECK: Use a subquery to find the user_id from the parent habit.
+    // This query says "Delete from habit_logs where the ID matches AND the habit_id
+    // belongs to a habit owned by the current user."
+    const query = `
+      DELETE FROM habit_logs
+      WHERE id = $1 AND habit_id IN (SELECT id FROM habits WHERE user_id = $2)
+      RETURNING *;
+    `;
+    const results = await pool.query(query, [logId, userId]);
 
-    const results = await pool.query(query, [id]);
+    if (results.rowCount === 0) {
+      return res.status(404).json({ message: "Habit log not found or you do not have permission to delete it." });
+    }
 
-    // HTTP DELETE request
-    res.status(200).json(results.rows); // Request successful, send message to client
+    res.status(200).json({ message: `Habit log with ID ${logId} deleted successfully.` });
   } catch (error) {
-    // Request not successful
-    res.status(409).json({ error: err.message });
-    console.log("Error:", error.message);
+    res.status(500).json({ error: error.message });
+    console.log("Error deleting habit log:", error.message);
   }
 };
+
+// NOTE: getHabitLogById and updateHabitLog are less common for this resource.
+// Users typically interact with a collection of logs for a specific habit.
+// If you need them, they can be implemented with similar security checks.
 
 module.exports = {
   createHabitLog,
-  getHabitLogById,
   getHabitLogsByHabitId,
-  updateHabitLog,
   deleteHabitLog,
 };

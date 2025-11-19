@@ -1,119 +1,141 @@
-// Created by: Jorge Valdes-Santiago
-//
-//
-// This script contains the functions for perfoming CRUD operations on the "goals" table
-const { pool } = require("../config/database.js"); //import { pool } from "../config/database.js";
+// backend/src/controllers/goals.controller.js
 
+const { pool } = require("../config/database.js");
+
+/**
+ * Creates a new goal for the currently logged-in user.
+ */
 const createGoal = async (req, res) => {
   try {
-    // Get parameters from HTTP POST request
-    const { user_id, title, description, status, target_date } = req.body;
+    // SECURITY: Get the user ID from the authenticated session, NOT the request body.
+    const userId = req.user.id;
+    
+    // Get goal details from the request body.
+    const { title, description, status, target_date } = req.body;
 
-    // Get current time
-    const created_at = new Date.now().toISOString(); // Get date in UTC (this can be converted to the local timezone in the frontend)
-
-    // Query to add a new goal to the goals table
+    // The 'created_at' column is handled by the database default.
     const query = `
-    INSERT INTO goals (user_id, title, description, status, target_date, created_at)
-    VALUES ($1, $2, $3, $4, $5, $6)
+      INSERT INTO goals (user_id, title, description, status, target_date)
+      VALUES ($1, $2, $3, $4, $5)
+      RETURNING *; -- Return the newly created goal
     `;
 
-    // Send query to database
     const results = await pool.query(query, [
-      user_id,
+      userId, // Use the secure user ID from the session
       title,
       description,
       status,
       target_date,
-      created_at,
     ]);
 
-    // Request successful
     res.status(201).json(results.rows[0]);
-    console.log("New goal created");
+    console.log(`New goal created for user ${userId}`);
   } catch (error) {
-    // Request not successful
-    res.status(409).json({ error: error.message });
-    console.log("Error:", error.message);
+    res.status(500).json({ error: error.message });
+    console.log("Error creating goal:", error.message);
   }
 };
 
+/**
+ * Fetches a single goal by its ID, ensuring it belongs to the logged-in user.
+ */
 const getGoalById = async (req, res) => {
   try {
-    const query = `SELECT * FROM goals WHERE id = $1`;
-    const id = parseInt(req.params.id); // Get item id (IMPORTANT: THE PARAMETER MUST MATCH THE ONE USED IN THE routes file)
+    const userId = req.user.id;
+    const goalId = parseInt(req.params.id);
 
-    const results = await pool.query(query, [id]);
+    // SECURITY: The query now checks BOTH the goal ID and the user ID.
+    const query = `SELECT * FROM goals WHERE id = $1 AND user_id = $2`;
+    const results = await pool.query(query, [goalId, userId]);
 
-    res.status(200).json(results.rows[0]); // Request successful, send data to client
+    if (results.rows.length === 0) {
+      return res.status(404).json({ message: "Goal not found." });
+    }
+
+    res.status(200).json(results.rows[0]);
   } catch (error) {
-    // Request not successful
-    res.status(409).json({ error: error.message });
-    console.log("Error:", error.message);
+    res.status(500).json({ error: error.message });
+    console.log("Error getting goal by ID:", error.message);
   }
 };
 
-// Gets goals by user id
+/**
+ * Fetches all goals for the currently logged-in user.
+ */
 const getGoalsByUserId = async (req, res) => {
   try {
-    // Get all goals from a user id
-    const { user_id } = req.body; // Get user_id from the request body
+    // SECURITY: Get user ID from the session, not the request body.
+    const userId = req.user.id;
 
-    const query = `SELECT * FROM goals WHERE user_id = $1`;
+    const query = `SELECT * FROM goals WHERE user_id = $1 ORDER BY target_date ASC`;
+    const results = await pool.query(query, [userId]);
 
-    const results = await pool.query(query, [user_id]); // Send query to the database
-
-    res.status(200).json(results.rows); // Request successful, send data to client
+    res.status(200).json(results.rows);
   } catch (error) {
-    // Request not successful
-    res.status(409).json({ error: error.message });
-    console.log("Error:", error.message);
+    res.status(500).json({ error: error.message });
+    console.log("Error getting goals by user ID:", error.message);
   }
 };
 
+/**
+ * Updates an existing goal, ensuring it belongs to the logged-in user.
+ */
 const updateGoal = async (req, res) => {
   try {
-    const id = parseInt(req.params.id); //  parse the ID from the URL parameter and convert it to an integer.
+    const userId = req.user.id;
+    const goalId = parseInt(req.params.id);
+    const { title, description, status, target_date } = req.body;
 
-    // Get parameters from HTTP PATCH request
-    const { user_id, title, description, status, target_date } = req.body;
-
+    // BUG FIX: The original query had incorrect parameter indices.
+    // SECURITY: The WHERE clause checks both goal ID and user ID before updating.
     const query = `
-    UPDATE goals SET title = $1, description = $2, status = $3, 
-    target_date = $5 WHERE id = $6`;
+      UPDATE goals 
+      SET title = $1, description = $2, status = $3, target_date = $4 
+      WHERE id = $5 AND user_id = $6
+      RETURNING *; -- Return the updated goal
+    `;
     const results = await pool.query(query, [
       title,
       description,
       status,
       target_date,
-      id,
+      goalId,
+      userId,
     ]);
 
-    res.status(200).json(results.rows); // Request successful, send response to client
-    console.log("Goal updated");
+    if (results.rows.length === 0) {
+      return res.status(404).json({ message: "Goal not found or you do not have permission to edit it." });
+    }
+
+    res.status(200).json(results.rows[0]);
+    console.log(`Goal ${goalId} updated for user ${userId}`);
   } catch (error) {
-    // Request not successful
-    res.status(409).json({ error: error.message });
-    console.log("Error:", error.message);
+    res.status(500).json({ error: error.message });
+    console.log("Error updating goal:", error.message);
   }
 };
 
+/**
+ * Deletes a goal, ensuring it belongs to the logged-in user.
+ */
 const deleteGoal = async (req, res) => {
   try {
-    const id = parseInt(req.params.id); //  parse the ID from the URL parameter and convert it to an integer.
-    // (IMPORTANT: THE PARAMETER MUST MATCH THE ONE USED IN THE routes file)
+    const userId = req.user.id;
+    const goalId = parseInt(req.params.id);
 
-    // Query to delete the selected goal
-    const query = `DELETE FROM goals WHERE id = $1`;
+    // SECURITY: The WHERE clause checks both goal ID and user ID before deleting.
+    const query = `DELETE FROM goals WHERE id = $1 AND user_id = $2`;
+    const results = await pool.query(query, [goalId, userId]);
 
-    const results = await pool.query(query, [id]);
+    if (results.rowCount === 0) {
+      // If no rows were deleted, the goal didn't exist or didn't belong to the user.
+      return res.status(404).json({ message: "Goal not found or you do not have permission to delete it." });
+    }
 
-    // HTTP DELETE request
-    res.status(200).json(results.rows[0]); // Request successful, send message to client
+    res.status(200).json({ message: `Goal with ID ${goalId} deleted successfully.` });
   } catch (error) {
-    // Request not successful
-    res.status(409).json({ error: error.message });
-    console.log("Error:", error.message);
+    res.status(500).json({ error: error.message });
+    console.log("Error deleting goal:", error.message);
   }
 };
 
@@ -124,12 +146,3 @@ module.exports = {
   updateGoal,
   deleteGoal,
 };
-/*
-export default {
-  createGoal,
-  getGoalById,
-  getGoalsByUserId,
-  updateGoal,
-  deleteGoal,
-};
-*/
