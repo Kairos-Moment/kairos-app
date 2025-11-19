@@ -2,7 +2,7 @@
 
 import React from 'react';
 import styles from './OracleInsight.module.css';
-import { BsScroll } from 'react-icons/bs'; // A more thematic icon for tasks
+import { GiScrollQuill} from 'react-icons/gi'; // A more thematic icon for tasks
 import { GiLaurels } from 'react-icons/gi'; // A thematic icon for the title
 
 // A dedicated component for the loading state skeleton
@@ -41,7 +41,7 @@ const OracleInsight = ({ insightData, isLoading }) => {
         <ul className={styles.taskList}>
           {tasks.map((task, index) => (
             <li key={index}>
-              <span className={styles.taskIcon}><BsScroll /></span>
+              <span className={styles.taskIcon}><GiScrollQuill /></span>
               <span className={styles.taskText}>{task.text}</span>
               <span className={styles.taskDue}>{task.due}</span>
             </li>
