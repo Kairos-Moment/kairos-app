@@ -1,0 +1,49 @@
+/* frontend/src/pages/SettingsPage.module.css */
+.settings { padding: 2rem; }
+.header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid var(--color-border); 
+}
+
+.profileCard {
+  max-width: 400px;
+  margin: 2rem auto;
+  padding: 2rem;
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  text-align: center;
+  box-shadow: 0 4px 6px rgba(0,0,0,0.04);
+}
+.avatar {
+  width: 100px;
+  height: 100px;
+  border-radius: 50%;
+  margin-bottom: 1rem;
+}
+.profileCard h2 { font-family: var(--font-heading); }
+.profileCard p { color: var(--color-text-secondary); }
+
+.logoutButton {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-top: 2rem;
+  padding: 0.75rem 2rem;
+  font-size: 1rem;
+  font-weight: 600;
+  color: #c62828;
+  background-color: #ffebee;
+  border: 1px solid #ffcdd2;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.logoutButton:hover {
+  background-color: #ffcdd2;
+  color: #b71c1c;
+}

@@ -1,0 +1,77 @@
+/* frontend/src/pages/GoalsPage.module.css */
+.goals {
+    padding: 2rem;
+  }
+  
+  .header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid var(--color-border);
+  }
+  
+  .header h1 {
+    font-family: var(--font-heading);
+    color: var(--color-primary);
+    margin: 0;
+  }
+  
+  .newGoalButton {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1.5rem;
+    font-size: 1rem;
+    font-weight: 600;
+    color: white;
+    background-color: var(--color-primary);
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+  }
+  .newGoalButton:hover {
+    background-color: #2c477c;
+  }
+  
+  .goalsGrid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 1.5rem;
+  }
+  
+  .goalCard {
+    background-color: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: 12px;
+    padding: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.04);
+  }
+  .goalCard h3 {
+    margin: 0 0 0.5rem 0;
+  }
+  .goalCard p {
+    flex-grow: 1;
+    color: var(--color-text-secondary);
+  }
+  
+  .goalFooter {
+    margin-top: 1rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--color-border);
+    font-size: 0.9rem;
+    color: var(--color-text-secondary);
+    display: flex;
+    justify-content: space-between;
+  }
+  
+  .loading, .emptyState {
+    padding: 2rem;
+    text-align: center;
+    font-size: 1.2rem;
+    color: var(--color-text-secondary);
+  }

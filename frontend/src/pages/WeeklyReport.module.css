@@ -1,29 +1,91 @@
-.reportLayout {
-    display: flex;
-    flex-direction: column;
-    height: 100vh;
-    background-color: #f4f7fa;
-  }
-  
-  .mainContent {
-    flex-grow: 1;
-    overflow-y: auto;
-    padding: 2rem;
-  }
-  
-  .reportHeader {
-    color: #1a1a1a;
-    margin-bottom: 2rem;
-  }
-  
-  .reportCard {
-    background-color: #ffffff;
-    border-radius: 12px;
-    padding: 1.5rem;
-    margin-bottom: 2rem;
-    box-shadow: 0 4px 6px rgba(0,0,0,0.05);
-  }
-  .reportCard h3 {
-    margin-top: 0;
-    color: #333;
-  }
+/* frontend/src/pages/WeeklyReportPage.module.css */
+
+.report {
+  padding: 2rem 2.5rem;
+}
+
+.reportHeader {
+  font-family: var(--font-heading);
+  color: var(--color-primary);
+  margin-bottom: 2rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--color-border);
+  font-size: 2rem;
+}
+
+.reportCard {
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 16px;
+  padding: 1.5rem 2rem;
+  margin-bottom: 2rem;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+
+.reportCard h3 {
+  font-family: var(--font-heading);
+  font-weight: 600;
+  margin-top: 0;
+  color: var(--color-text-primary);
+}
+
+.reportCard p {
+  color: var(--color-text-secondary);
+  line-height: 1.6;
+}
+
+.chartDescription {
+  font-size: 0.9rem;
+  margin-top: -0.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.emptyState {
+  padding: 2rem;
+  text-align: center;
+  font-size: 1.2rem;
+  color: var(--color-text-secondary);
+}
+
+
+/* --- Skeleton Loader Styles --- */
+.skeleton {
+  background-color: #e0e0e0;
+  border-radius: 4px;
+  position: relative;
+  overflow: hidden;
+}
+
+.skeleton::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -150px;
+  height: 100%;
+  width: 150px;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
+  animation: shimmer 1.5s infinite;
+}
+
+@keyframes shimmer {
+  0% { left: -150px; }
+  100% { left: 100%; }
+}
+
+.skeletonTitle {
+  height: 1.5rem;
+  width: 30%;
+  margin-bottom: 1rem;
+}
+
+.skeletonText {
+  height: 1rem;
+  width: 100%;
+  margin-bottom: 0.5rem;
+}
+
+.skeletonChart {
+  height: 300px; /* Match the height of the chart components */
+  width: 100%;
+  margin-top: 1rem;
+}

@@ -1,95 +1,81 @@
+// frontend/src/pages/WeeklyReportPage.jsx
+
 import React, { useState, useEffect } from 'react';
 import styles from './WeeklyReport.module.css';
-// We don't need apiClient for the mock version, but we'll leave it for later
-// import apiClient from '../api/axios'; 
+import apiClient from '../api/axios';
 
-import Header from '../components/dashboard/Header';
-import BottomNav from '../components/dashboard/BottomNav';
+// Import Chart Components
 import ProductivityChart from '../components/report/ProductivityChart';
 import DistributionChart from '../components/report/DistributionChart';
 
-// --- PASTE THE MOCK DATA HERE ---
-const mockReportData = {
-  summary: "Fantastic work this week, Jane! You crushed 11 tasks, with a major focus on your 'Capstone' goal. Thursday was your most productive day. Keep up the great momentum!",
-  productivityData: [
-    { name: 'Mon', tasks: 2 },
-    { name: 'Tue', tasks: 3 },
-    { name: 'Wed', tasks: 1 },
-    { name: 'Thu', tasks: 4 },
-    { name: 'Fri', tasks: 1 },
-    { name: 'Sat', tasks: 0 },
-    { name: 'Sun', tasks: 0 },
-  ],
-  distributionData: [
-    { name: 'Capstone', value: 450 },
-    { name: 'Personal', value: 195 },
-    { name: 'Admin', value: 120 },
-  ],
-};
-// --------------------------------
+// A dedicated component for the loading state skeleton
+const ReportSkeleton = () => (
+  <div className={styles.report}>
+    <h1 className={styles.reportHeader}>Your Weekly Kairos</h1>
+    <div className={styles.reportCard}>
+      <div className={`${styles.skeleton} ${styles.skeletonTitle}`} />
+      <div className={`${styles.skeleton} ${styles.skeletonText}`} />
+      <div className={`${styles.skeleton} ${styles.skeletonText}`} style={{ width: '80%' }} />
+    </div>
+    <div className={styles.reportCard}>
+      <div className={`${styles.skeleton} ${styles.skeletonTitle}`} />
+      <div className={`${styles.skeleton} ${styles.skeletonChart}`} />
+    </div>
+  </div>
+);
 
 const WeeklyReport = () => {
   const [reportData, setReportData] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // --- THIS IS THE MODIFIED PART ---
-    // We are commenting out the real API call
-    /*
     const fetchReport = async () => {
       try {
         setIsLoading(true);
-        const response = await apiClient.get('/insights/weekly');
+        // Make the live API call to the secure endpoint
+        const response = await apiClient.get('/api/insights/weekly');
         setReportData(response.data);
       } catch (error) {
         console.error("Failed to fetch weekly report:", error);
+        // In a real app, you might set an error state to show a message.
       } finally {
         setIsLoading(false);
       }
     };
     fetchReport();
-    */
+  }, []); // The empty array ensures this runs only once on mount
 
-    // Instead, we use a timeout to simulate a network request with our mock data
-    const timer = setTimeout(() => {
-      setReportData(mockReportData);
-      setIsLoading(false);
-    }, 1000); // Simulate a 1-second delay
-
-    // Cleanup function to prevent errors if the component unmounts
-    return () => clearTimeout(timer);
-  }, []); // The empty array ensures this runs only once
-
+  // Render the skeleton loader while fetching data
   if (isLoading) {
-    return <div style={{ padding: '2rem' }}>Loading your report...</div>;
+    return <ReportSkeleton />;
   }
 
+  // Render a message if data could not be fetched
   if (!reportData) {
-    return <div style={{ padding: '2rem' }}>Could not load report data.</div>;
+    return <div className={styles.emptyState}>Could not load your weekly report.</div>;
   }
   
   return (
-    <div className={styles.reportLayout}>
-      <Header />
-      <main className={styles.mainContent}>
-        <h1 className={styles.reportHeader}>Your Weekly Kairos</h1>
-        
-        <div className={styles.reportCard}>
-          <h3>Oracle's Summary</h3>
-          <p>{reportData.summary}</p>
-        </div>
+    // This page is now wrapped by MainLayout, so we don't need Header or BottomNav
+    <div className={styles.reportPage}>
+      <h1 className={styles.reportHeader}>Your Weekly Kairos</h1>
+      
+      <div className={styles.reportCard}>
+        <h3>Oracle's Summary</h3>
+        <p>{reportData.summary}</p>
+      </div>
 
-        <div className={styles.reportCard}>
-          <h3>Productivity Peaks</h3>
-          <ProductivityChart data={reportData.productivityData} />
-        </div>
-        
-        <div className={styles.reportCard}>
-          <h3>Time Distribution</h3>
-          <DistributionChart data={reportData.distributionData} />
-        </div>
-      </main>
-      <BottomNav />
+      <div className={styles.reportCard}>
+        <h3>Productivity Peaks</h3>
+        <p className={styles.chartDescription}>Tasks completed per day this week.</p>
+        <ProductivityChart data={reportData.productivityData} />
+      </div>
+      
+      <div className={styles.reportCard}>
+        <h3>Time Distribution</h3>
+        <p className={styles.chartDescription}>Time spent on each goal category (in minutes).</p>
+        <DistributionChart data={reportData.distributionData} />
+      </div>
     </div>
   );
 };
