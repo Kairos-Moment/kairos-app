@@ -1,95 +1,43 @@
 // frontend/src/App.jsx
-import { Routes, Route, useRoutes } from "react-router-dom";
-import { useEffect, useState } from "react";
-import Dashboard from "./pages/Dashboard";
-import Login from "./pages/Login";
+
+import { Routes, Route } from 'react-router-dom';
+
+// Import Layouts and ProtectedRoute
+import MainLayout from './components/layout/MainLayout';
+import ProtectedRoute from './components/auth/ProtectedRoute';
+
+// Import Pages
+import Login from './pages/Login';
+import Dashboard from './pages/Dashboard';
 import WeeklyReport from './pages/WeeklyReport';
-
-
+import Goals from './pages/Goals';
+import Habits from './pages/Habits';
+import Settings from './pages/Settings';
 
 function App() {
-  const [tasks, setTasks] = useState([]);
-  const [goals, setGoals] = useState([]);
-  const [focusSessions, setFocusSessions] = useState([]);
-  const [habits, setHabits] = useState([]);
-  const [user, setUser] = useState([]);
-
-  const API_URL = "http://localhost:3001"; // link to API
-
-  useEffect(() => {
-    const getUser = async () => {
-      const response = await fetch(`${API_URL}/auth/login/success`, {
-        credentials: "include",
-      });
-      const json = await response.json();
-      setUser(json.user);
-    };
-
-    const fetchTasks = async () => {};
-
-    const fetchGoals = async () => {};
-
-    const fetchHabits = async () => {};
-
-    // Call functions
-    //getUser();
-  });
-
-  const logout = async () => {
-    // Make a request to the /auth/logout endpoint with the credentials option set to 'include'.
-    const url = `${API_URL}/auth/logout`;
-    const response = await fetch(url, { credentials: "include" });
-    const json = await response.json(); // Convert response to JSON
-    window.location.href = "/"; // Redirect to home page
-  };
-
-  // Routes and pages
-
-  let element = useRoutes([
-    {
-      path: "/",
-      element: <Dashboard />,
-    },
-    {
-      path: "/tasks/create",
-      element: "<Task Creator page here>",
-    },
-    {
-      path: "/goals",
-      element: "<Goals page here>",
-    },
-    {
-      path: "/goals/create/",
-      element: "<Goals Creation page here>",
-    },
-    {
-      path: "/habits",
-      element: "<Habits page here>",
-    },
-    {
-      path: "/habits/create/",
-      element: "<Habit Creator page here>",
-    },
-    {
-      path: "/insights",
-      element: "<Insights page here>",
-    },
-    {
-      path: "/settings",
-      element: "<Settings page here>",
-    },
-  ]);
-
-  return <>{element}</>;
-
-  // Delete or comment the "return" above if it causes problems
-
   return (
     <Routes>
-      <Route path="/" element={<Dashboard />} />
-      <Route path="/report" element={<WeeklyReport />} />
-      {/* You can add more routes here later, e.g., for login */}
-      {/* <Route path="/login" element={<LoginPage />} /> */}
+      {/* --- Public Route --- */}
+      <Route path="/login" element={<Login />} />
+
+      {/* --- Protected Routes with Main Layout --- */}
+      {/* 
+        This is a nested routing structure. 
+        1. The ProtectedRoute checks if the user is logged in.
+        2. If logged in, the MainLayout is rendered (Header, Footer, and an Outlet).
+        3. The specific child route (e.g., DashboardPage) is then rendered inside the MainLayout's <Outlet />.
+      */}
+      <Route element={<ProtectedRoute />}>
+        <Route element={<MainLayout />}>
+          <Route path="/" element={<Dashboard />} />
+          <Route path="/report" element={<WeeklyReport />} />
+          <Route path="/goals" element={<Goals />} />
+          <Route path="/habits" element={<Habits />} />
+          <Route path="/settings" element={<Settings />} />
+        </Route>
+      </Route>
+
+      {/* <Route path="*" element={<NotFoundPage />} /> */}
     </Routes>
   );
 }

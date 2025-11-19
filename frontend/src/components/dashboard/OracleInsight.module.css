@@ -1,13 +1,93 @@
-.loading {
-    opacity: 0.7;
+/* frontend/src/components/dashboard/OracleInsight.module.css */
+
+.insightCard {
+  background-color: var(--color-surface);
+  color: var(--color-text-primary);
+  padding: 1.5rem 2rem;
+  border-radius: 16px;
+  border: 1px solid var(--color-border);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+
+.insightCard h2 {
+  font-family: var(--font-heading);
+  margin: 0 0 1rem 0;
+  font-weight: 600;
+  color: var(--color-primary);
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  font-size: 1.5rem;
+}
+
+.insightCard p {
+  color: var(--color-text-secondary);
+  line-height: 1.6;
+  margin: 0;
+}
+
+.taskList {
+  list-style: none;
+  padding: 0;
+  margin-top: 1.5rem;
+}
+
+.taskList li {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 0.75rem;
+  font-weight: 500;
+}
+
+.taskIcon {
+  font-size: 1.25rem;
+  color: var(--color-accent); /* Gold icon */
+}
+
+.taskText {
+  flex-grow: 1;
+}
+
+.taskDue {
+  font-size: 0.9rem;
+  color: var(--color-text-secondary);
+}
+
+.noTasksMessage {
+  margin-top: 1.5rem;
+  padding: 1rem;
+  text-align: center;
+  font-style: italic;
+  color: var(--color-text-secondary);
+  background-color: var(--color-background);
+  border-radius: 8px;
+}
+
+/* --- Skeleton Loader Styles --- */
+.skeleton {
+  background-color: #e0e0e0;
+  border-radius: 4px;
+  position: relative;
+  overflow: hidden;
+}
+
+.skeleton::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -150px;
+  height: 100%;
+  width: 150px;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
+  animation: shimmer 1.5s infinite;
+}
+
+@keyframes shimmer {
+  0% {
+    left: -150px;
   }
-  
-  .loading p {
-    animation: pulse 1.5s infinite ease-in-out;
+  100% {
+    left: 100%;
   }
-  
-  @keyframes pulse {
-    0% { opacity: 1; }
-    50% { opacity: 0.5; }
-    100% { opacity: 1; }
-  }
+}

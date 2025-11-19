@@ -47,3 +47,36 @@
   .icon:hover {
     color: #1a1a1a;
   }
+
+  .iconLink {
+    color: inherit; /* Make the link color match the icon color */
+    display: flex; /* Helps with alignment */
+    align-items: center;
+  }
+  
+  .logoutButton {
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: #555;
+    display: flex;
+    align-items: center;
+    padding: 0;
+    transition: color 0.2s;
+  }
+  .logoutButton:hover {
+    color: #c62828; /* A reddish color on hover */
+  }
+  
+  .loginLink {
+    text-decoration: none;
+    color: #ffffff;
+    background-color: #007bff;
+    padding: 0.5rem 1rem;
+    border-radius: 8px;
+    font-weight: 500;
+    transition: background-color 0.2s;
+  }
+  .loginLink:hover {
+    background-color: #0056b3;
+  }
