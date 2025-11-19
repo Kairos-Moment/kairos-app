@@ -3,6 +3,9 @@ import { Routes, Route, useRoutes } from "react-router-dom";
 import { useEffect, useState } from "react";
 import Dashboard from "./pages/Dashboard";
 import Login from "./pages/Login";
+import WeeklyReport from './pages/WeeklyReport';
+
+
 
 function App() {
   const [tasks, setTasks] = useState([]);
@@ -84,6 +87,7 @@ function App() {
   return (
     <Routes>
       <Route path="/" element={<Dashboard />} />
+      <Route path="/report" element={<WeeklyReport />} />
       {/* You can add more routes here later, e.g., for login */}
       {/* <Route path="/login" element={<LoginPage />} /> */}
     </Routes>

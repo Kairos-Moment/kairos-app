@@ -31,8 +31,7 @@ app.use(
 
 app.use(
   cors({
-    origin: "http://localhost:5173", // Your frontend URL in development
-    // For production, you'll change this to your deployed frontend URL
+    origin: process.env.CORS_ORIGIN,
 
     methods: "GET,POST,PUT,DELETE,PATCH", // Specify acceptable CORS requests
     credentials: true, // Allow cookies (or other credentials) to be included in CORS requests
@@ -59,7 +58,7 @@ app.get("/", (req, res) => {
   res
     .status(200)
     .send(
-      '<h1 style="text-align: center; margin-top: 50px;">Welcome to Kronos API!</h1>'
+      '<h1 style="text-align: center; margin-top: 50px;">Welcome to Kairos API!</h1>'
     );
 });
 
@@ -67,7 +66,7 @@ app.get("/api", (req, res) => {
   res
     .status(200)
     .send(
-      '<h1 style="text-align: center; margin-top: 50px;">Kronos API Endpoint</h1>'
+      '<h1 style="text-align: center; margin-top: 50px;">Kairos API Endpoint</h1>'
     );
 });
 

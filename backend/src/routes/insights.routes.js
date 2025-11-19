@@ -1,8 +1,8 @@
 const express = require('express');
 const router = express.Router();
-const { getInsights } = require('../controllers/insights.controller');
+const { getOracleInsight } = require('../controllers/insights.controller');
 
-// GET /api/insights
-router.get('/', getInsights);
+// Defines the route: GET /api/insights/
+router.get('/', getOracleInsight);
 
 module.exports = router;

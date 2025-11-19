@@ -1,0 +1,29 @@
+.reportLayout {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    background-color: #f4f7fa;
+  }
+  
+  .mainContent {
+    flex-grow: 1;
+    overflow-y: auto;
+    padding: 2rem;
+  }
+  
+  .reportHeader {
+    color: #1a1a1a;
+    margin-bottom: 2rem;
+  }
+  
+  .reportCard {
+    background-color: #ffffff;
+    border-radius: 12px;
+    padding: 1.5rem;
+    margin-bottom: 2rem;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+  }
+  .reportCard h3 {
+    margin-top: 0;
+    color: #333;
+  }

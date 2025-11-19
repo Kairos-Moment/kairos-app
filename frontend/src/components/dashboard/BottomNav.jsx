@@ -2,23 +2,26 @@
 import React from 'react';
 import styles from './BottomNav.module.css';
 import { IoGridOutline, IoGolfOutline, IoSyncOutline, IoBarChartOutline, IoSettingsOutline } from 'react-icons/io5';
+import { Link, useLocation } from 'react-router-dom';
 
 const navItems = [
-    { icon: <IoGridOutline />, label: 'Today' },
-    { icon: <IoGolfOutline />, label: 'Goals' },
-    { icon: <IoSyncOutline />, label: 'Habits' },
-    { icon: <IoBarChartOutline />, label: 'Insights' },
-    { icon: <IoSettingsOutline />, label: 'Settings' },
+    { icon: <IoGridOutline />, label: 'Today', path: '/' },
+    { icon: <IoGolfOutline />, label: 'Goals', path: '/goals' },
+    { icon: <IoSyncOutline />, label: 'Habits', path: '/habits' },
+    { icon: <IoBarChartOutline />, label: 'Insights', path: '/report' },
+    { icon: <IoSettingsOutline />, label: 'Settings', path: '/settings' },
 ];
 
 const BottomNav = () => {
+    const location = useLocation(); // Hook to get the current path
+
     return (
         <nav className={styles.bottomNav}>
-            {navItems.map((item, index) => (
-                <div key={index} className={`${styles.navItem} ${item.label === 'Today' ? styles.active : ''}`}>
+            {navItems.map((item) => (
+                <Link to={item.path} key={item.label} className={`${styles.navItem} ${location.pathname === item.path ? styles.active : ''}`}>
                     {item.icon}
                     <span>{item.label}</span>
-                </div>
+                </Link>
             ))}
         </nav>
     );
