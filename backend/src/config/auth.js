@@ -11,7 +11,7 @@ const { pool } = require("./database.js");
 const options = {
   clientID: process.env.GITHUB_CLIENT_ID,
   clientSecret: process.env.GITHUB_CLIENT_SECRET,
-  callbackURL: "http://localhost:5001/auth/github/callback",
+  callbackURL: process.env.GITHUB_CALLBACK_URL,
 };
 
 // Responsible for determining which user in the database the credential belongs to.

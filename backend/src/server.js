@@ -96,7 +96,7 @@ app.use("/api/goals", goalRoutes);
 app.use("/api/habits", habitRoutes);
 app.use("/api/focus-sessions", focusSessionRoutes);
 app.use("/api/habit-logs", habitLogRoutes);
-app.use("/auth", authRoutes);
+app.use("/api/auth", authRoutes);
 
 // --- 6. SERVER LISTENER ---
 app.listen(PORT, () => {
