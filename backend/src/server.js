@@ -48,7 +48,8 @@ app.use(
       maxAge: 30 * 24 * 60 * 60 * 1000, // Cookie expires in 30 days
       secure: true, // Use secure cookies in production (https)
       httpOnly: true,
-      sameSite: 'none'
+      sameSite: 'none',
+      domain: process.env.SESSION_COOKIE_DOMAIN
     },
   })
 );
