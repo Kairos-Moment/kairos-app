@@ -23,7 +23,6 @@ const PORT = process.env.PORT || 5001; // Render uses 10000 by default
 // CORS Configuration (should be one of the first middleware)
 app.use(
   cors({
-    origin: process.env.CORS_ORIGIN, // Use env variable for frontend URL
     methods: "GET,POST,PUT,DELETE,PATCH",
     credentials: true, // IMPORTANT: Allows cookies to be sent for session management
   })
@@ -48,8 +47,7 @@ app.use(
       maxAge: 30 * 24 * 60 * 60 * 1000, // Cookie expires in 30 days
       secure: true, // Use secure cookies in production (https)
       httpOnly: true,
-      sameSite: 'none',
-      domain: process.env.SESSION_COOKIE_DOMAIN
+      sameSite: 'none'
     },
   })
 );
