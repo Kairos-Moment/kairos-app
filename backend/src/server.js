@@ -46,8 +46,9 @@ app.use(
     saveUninitialized: false, // Recommended for login sessions
     cookie: {
       maxAge: 30 * 24 * 60 * 60 * 1000, // Cookie expires in 30 days
-      secure: process.env.NODE_ENV === 'production', // Use secure cookies in production (https)
-      httpOnly: true // Prevents client-side JS from accessing the cookie
+      secure: true, // Use secure cookies in production (https)
+      httpOnly: true,
+      sameSite: 'none'
     },
   })
 );
