@@ -31,28 +31,27 @@ app.use(
 // Body Parser Middleware (to read JSON from requests)
 app.use(express.json());
 
-// Session Middleware (UPGRADED for production)
 app.use(
   session({
-    // Use the persistent database store instead of MemoryStore
     store: new pgSession({
       pool: pool,
-      tableName: 'user_sessions', // A new table will be created automatically
+      tableName: 'user_sessions',
     }),
-    // Use a secure secret from your environment variables
     secret: process.env.SESSION_SECRET,
     resave: false,
-    saveUninitialized: false, // Recommended for login sessions
+    saveUninitialized: false,
     cookie: {
-      maxAge: 30 * 24 * 60 * 60 * 1000, // Cookie expires in 30 days
-      secure: true, // Use secure cookies in production (https)
-      httpOnly: true,
-      sameSite: 'none'
+      maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
+      secure: true,       // MUST be true for Render (HTTPS)
+      httpOnly: true,     // Good security practice
+      sameSite: 'none'    // CRITICAL for the proxy setup to work in all browsers
     },
   })
 );
 
-// Passport Middleware (must be AFTER session middleware)
+// This line is also needed for the proxy to work correctly
+app.set('trust proxy', 1);
+
 app.use(passport.initialize());
 app.use(passport.session());
 passport.use(GitHub);

@@ -58,19 +58,13 @@ router.get(
   })
 );
 
-// Standardized environment variable for the frontend URL
-const FRONTEND_URL = process.env.CORS_ORIGIN || "http://localhost:5173";
+const FRONTEND_URL = process.env.CORS_ORIGIN;
 
-/**
- * @route GET /api/auth/github/callback
- * @description The route GitHub redirects to after the user approves or denies the app.
- * Passport's `authenticate` function handles the logic. It does NOT need our middleware.
- */
 router.get(
   "/github/callback",
   passport.authenticate("github", {
-    successRedirect: FRONTEND_URL, // On success, send user to the dashboard
-    failureRedirect: `${FRONTEND_URL}/login`, // On failure, send user back to the login page
+    successRedirect: FRONTEND_URL,
+    failureRedirect: `${FRONTEND_URL}/login`,
   })
 );
 
