@@ -5,28 +5,39 @@ import { Navigate, Outlet } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 
 const ProtectedRoute = () => {
-  // 1. Get authentication state from our custom hook
+  // Get the complete state from our custom hook
   const { isAuthenticated, isLoading } = useAuth();
 
-  // 2. Handle the initial loading state
-  // While the auth status is being checked, we don't want to render anything.
-  // This prevents a "flash" of the login page before the user is confirmed.
+  // --- DEBUGGING BLOCK ---
+  // This will print to your browser's developer console (F12)
+  console.log(`[ProtectedRoute] Status Check: isLoading=${isLoading}, isAuthenticated=${isAuthenticated}`);
+  // --- END DEBUGGING BLOCK ---
+
+  // 1. Primary case: Still loading the initial auth status.
+  // Show a loading indicator to prevent any premature redirects or flashes of content.
   if (isLoading) {
-    return <div>Loading...</div>; // Or a spinner component
+    console.log("[ProtectedRoute] Decision: Showing loading screen.");
+    // You can replace this with a nice spinner component later
+    return <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', fontFamily: 'var(--font-heading)' }}>Authenticating...</div>;
   }
 
-  // 3. The core logic: check if the user is authenticated
-  if (!isAuthenticated) {
-    // If the user is not authenticated, redirect them to the /login page.
-    // The `replace` prop is used to prevent the user from clicking the "back"
-    // button in their browser and getting back to the protected page.
+  // 2. Secondary case: Loading is finished, and the user is authenticated.
+  // Allow them to see the protected content.
+  if (!isLoading && isAuthenticated) {
+    console.log("[ProtectedRoute] Decision: User is authenticated. Rendering Outlet.");
+    // The <Outlet /> renders the actual page (e.g., DashboardPage).
+    return <Outlet />;
+  }
+
+  // 3. Fallback case: Loading is finished, and the user is NOT authenticated.
+  // Redirect them to the login page.
+  if (!isLoading && !isAuthenticated) {
+    console.log("[ProtectedRoute] Decision: User is NOT authenticated. Redirecting to /login.");
     return <Navigate to="/login" replace />;
   }
-
-  // 4. If the user is authenticated, render the child route
-  // The <Outlet /> component from react-router-dom is a placeholder that
-  // will be replaced by the actual page component (e.g., <DashboardPage />).
-  return <Outlet />;
+  
+  // This part should ideally never be reached, but it's good practice to have a fallback.
+  return null;
 };
 
 export default ProtectedRoute;
