@@ -31,6 +31,9 @@ app.use(
 // Body Parser Middleware (to read JSON from requests)
 app.use(express.json());
 
+// This line is also needed for the proxy to work correctly
+app.set('trust proxy', 1);
+
 app.use(
   session({
     store: new pgSession({
@@ -48,9 +51,6 @@ app.use(
     },
   })
 );
-
-// This line is also needed for the proxy to work correctly
-app.set('trust proxy', 1);
 
 app.use(passport.initialize());
 app.use(passport.session());
