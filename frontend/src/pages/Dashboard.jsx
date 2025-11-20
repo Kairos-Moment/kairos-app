@@ -67,7 +67,7 @@ const Dashboard = () => {
         (async () => {
           try {
             setIsLoadingInsights(true);
-            const response = await apiClient.get('/api/insights');
+            const response = await apiClient.get('/insights');
             setInsightData(response.data);
           } catch (error) {
             console.error("Failed to fetch Oracle insights:", error);

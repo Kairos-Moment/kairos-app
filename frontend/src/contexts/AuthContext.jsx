@@ -27,7 +27,7 @@ export const AuthProvider = ({ children }) => {
       // Make the API call to our secure backend endpoint.
       // `apiClient` is already configured with `withCredentials: true` (if set up)
       // to handle sending the session cookie automatically.
-      const response = await apiClient.get('/api/auth/login/success');
+      const response = await apiClient.get('/auth/login/success');
       
       // If we get a 200 OK response and our success flag is true...
       if (response.status === 200 && response.data.success) {
@@ -64,7 +64,7 @@ export const AuthProvider = ({ children }) => {
   const logout = async () => {
     try {
       // Call the secure logout endpoint.
-      await apiClient.get('/api/auth/logout'); // Or .post depending on your route definition
+      await apiClient.get('/auth/logout'); // Or .post depending on your route definition
       
       // Clear the user state in the frontend immediately.
       setUser(null);
