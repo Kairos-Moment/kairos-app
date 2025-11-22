@@ -23,8 +23,10 @@ const PORT = process.env.PORT || 5001; // Render uses 10000 by default
 // CORS Configuration (should be one of the first middleware)
 app.use(
   cors({
-    methods: "GET,POST,PUT,DELETE,PATCH",
-    credentials: true, // IMPORTANT: Allows cookies to be sent for session management
+    origin: 'https://kairos-app.onrender.com', 
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization']
   })
 );
 
