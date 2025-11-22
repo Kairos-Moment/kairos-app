@@ -13,7 +13,7 @@ const GREEK_QUOTES = [
 
 const AMBIENT_TRACKS = [
   { name: "Rainfall", url: "https://actions.google.com/sounds/v1/weather/rain_heavy_loud.ogg" },
-  { name: "Ocean Waves", url: "https://actions.google.com/sounds/v1/water/waves_crashing.ogg" },
+  { name: "Ocean Waves", url: "https://actions.google.com/sounds/v1/water/waves_crashing_on_rock_beach.ogg" },
   { name: "Crackling Fire", url: "https://actions.google.com/sounds/v1/ambiences/fire.ogg" },
 ];
 
