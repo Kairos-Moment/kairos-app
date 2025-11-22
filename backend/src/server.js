@@ -25,7 +25,7 @@ app.use(
   cors({
     origin: 'https://kairos-app.onrender.com', 
     credentials: true,
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
     allowedHeaders: ['Content-Type', 'Authorization']
   })
 );
