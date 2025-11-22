@@ -117,10 +117,22 @@ const FocusSession = () => {
     setIsActive(false);
     setTimeLeft(DEFAULT_TIME);
     setSessionStartTime(null); // Reset start time so next session is fresh
+    
+    // Immediately pause and rewind the audio to the beginning
+    if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current.currentTime = 0; // This resets the track to 0:00
+    }
   };
 
   const handleSessionComplete = async () => {
     setIsActive(false);
+
+    // Immediately pause and rewind the audio to the beginning
+    if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current.currentTime = 0; // This resets the track to 0:00
+    }
     
     if (!selectedTaskId || !sessionStartTime) {
       alert("Session complete.");
