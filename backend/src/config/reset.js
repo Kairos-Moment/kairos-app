@@ -110,6 +110,7 @@ const resetDatabase = async () => {
         user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
         task_id INTEGER NOT NULL REFERENCES tasks(id) ON DELETE CASCADE,
         start_time TIMESTAMP WITH TIME ZONE NOT NULL,
+        end_time TIMESTAMP WITH TIME ZONE NOT NULL,
         duration_minutes INTEGER NOT NULL,
         notes TEXT DEFAULT ''
       );

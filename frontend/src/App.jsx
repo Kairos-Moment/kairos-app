@@ -10,7 +10,7 @@ import ProtectedRoute from './components/auth/ProtectedRoute';
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
 import WeeklyReport from './pages/WeeklyReport';
-import Goals from './pages/Goals';
+import FocusSession from './pages/FocusSession';
 import Habits from './pages/Habits';
 import Settings from './pages/Settings';
 
@@ -31,7 +31,7 @@ function App() {
         <Route element={<MainLayout />}>
           <Route path="/" element={<Dashboard />} />
           <Route path="/report" element={<WeeklyReport />} />
-          <Route path="/goals" element={<Goals />} />
+          <Route path="/focus-sessions" element={<FocusSession />} />
           <Route path="/habits" element={<Habits />} />
           <Route path="/settings" element={<Settings />} />
         </Route>
