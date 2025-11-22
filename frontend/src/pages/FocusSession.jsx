@@ -1,7 +1,9 @@
+// frontend/src/pages/FocusSession.jsx
+
 import React, { useState, useEffect, useRef } from 'react';
 import apiClient from '../api/axios';
 import styles from './FocusSession.module.css';
-import { IoPlay, IoPause, IoRefresh, IoMusicalNotes } from 'react-icons/io5';
+import { IoPlay, IoPause, IoRefresh, IoMusicalNotes, IoCheckmarkCircle } from 'react-icons/io5';
 
 const GREEK_QUOTES = [
   "We suffer more often in imagination than in reality. — Seneca",
@@ -18,21 +20,27 @@ const AMBIENT_TRACKS = [
 ];
 
 const FocusSession = () => {
-  // Data State
+  // --- STATE ---
   const [tasks, setTasks] = useState([]);
   const [selectedTaskId, setSelectedTaskId] = useState('');
   
   // Timer State
-  const [timeLeft, setTimeLeft] = useState(25 * 60); // 25 minutes in seconds
+  const DEFAULT_TIME = 25 * 60;
+  const [timeLeft, setTimeLeft] = useState(DEFAULT_TIME);
   const [isActive, setIsActive] = useState(false);
-  const [initialTime, setInitialTime] = useState(25 * 60);
+  const [sessionStartTime, setSessionStartTime] = useState(null); // Needed for backend
 
   // Ambience State
   const [quote, setQuote] = useState(GREEK_QUOTES[0]);
   const [audioUrl, setAudioUrl] = useState('');
   const audioRef = useRef(new Audio());
 
-  // Fetch tasks on mount
+  // UI State
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // --- EFFECTS ---
+
+  // 1. Fetch Tasks & Quote on Mount
   useEffect(() => {
     const fetchTasks = async () => {
       try {
@@ -47,58 +55,101 @@ const FocusSession = () => {
     setQuote(GREEK_QUOTES[Math.floor(Math.random() * GREEK_QUOTES.length)]);
   }, []);
 
-  // Timer Logic
+  // 2. Timer Logic
   useEffect(() => {
     let interval = null;
     if (isActive && timeLeft > 0) {
       interval = setInterval(() => {
         setTimeLeft((prev) => prev - 1);
       }, 1000);
-    } else if (timeLeft === 0) {
+    } else if (timeLeft === 0 && isActive) {
+      // Timer finished naturally
       clearInterval(interval);
       handleSessionComplete();
     }
     return () => clearInterval(interval);
   }, [isActive, timeLeft]);
 
-  // Audio Logic
+  // 3. Audio Logic (SYNCED WITH TIMER)
   useEffect(() => {
+    // If a track is selected...
     if (audioUrl) {
-      audioRef.current.src = audioUrl;
-      audioRef.current.loop = true;
-      audioRef.current.play().catch(e => console.log("Audio play failed (interaction needed)", e));
+      // Update source if changed
+      if (audioRef.current.src !== audioUrl) {
+        audioRef.current.src = audioUrl;
+        audioRef.current.loop = true;
+      }
+
+      // ONLY play if timer is active
+      if (isActive) {
+        const playPromise = audioRef.current.play();
+        if (playPromise !== undefined) {
+          playPromise.catch(error => console.log("Audio autoplay blocked:", error));
+        }
+      } else {
+        audioRef.current.pause();
+      }
     } else {
+      // No track selected
       audioRef.current.pause();
     }
-    return () => audioRef.current.pause();
-  }, [audioUrl]);
-
-  const handleSessionComplete = async () => {
-    setIsActive(false);
-    alert("Focus Session Complete! Kairos achieved.");
     
-    // Save to DB
-    if (selectedTaskId) {
-      try {
-        const duration = Math.floor((initialTime - timeLeft) / 60);
-        await apiClient.post('/focus', {
-          task_id: selectedTaskId,
-          duration_minutes: duration || 25, // Default to full duration if 0
-          notes: "Completed via Focus Mode"
-        });
-      } catch (err) {
-        console.error("Failed to log session", err);
-      }
-    }
-    // Reset
-    setTimeLeft(initialTime);
-  };
+    return () => audioRef.current.pause();
+  }, [audioUrl, isActive]); // Dependency on isActive ensures sync
 
-  const toggleTimer = () => setIsActive(!isActive);
+  // --- HANDLERS ---
+
+  const toggleTimer = () => {
+    if (!selectedTaskId) {
+      alert("Please select a labor (task) before beginning.");
+      return;
+    }
+
+    // Capture the start time the MOMENT they first click start
+    if (!isActive && !sessionStartTime) {
+      setSessionStartTime(new Date().toISOString());
+    }
+    
+    setIsActive(!isActive);
+  };
   
   const resetTimer = () => {
     setIsActive(false);
-    setTimeLeft(initialTime);
+    setTimeLeft(DEFAULT_TIME);
+    setSessionStartTime(null); // Reset start time so next session is fresh
+  };
+
+  const handleSessionComplete = async () => {
+    setIsActive(false);
+    
+    if (!selectedTaskId || !sessionStartTime) {
+      alert("Session complete.");
+      resetTimer();
+      return;
+    }
+
+    setIsSubmitting(true);
+
+    try {
+      // Prepare data matching your Backend Controller requirements
+      const sessionData = {
+        task_id: selectedTaskId,
+        start_time: sessionStartTime,
+        end_time: new Date().toISOString(), // Capture exact end time
+        notes: "Completed via Kairos Focus Mode"
+      };
+
+      // Send to your new endpoint
+      await apiClient.post('/focus-sessions', sessionData);
+      
+      alert("Kairos Achieved: Session logged successfully.");
+      resetTimer();
+    } catch (err) {
+      console.error("Failed to log session", err);
+      alert("Session complete, but could not save to database.");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const formatTime = (seconds) => {
@@ -123,6 +174,7 @@ const FocusSession = () => {
               value={selectedTaskId} 
               onChange={(e) => setSelectedTaskId(e.target.value)}
               className={styles.dropdown}
+              disabled={isActive || isSubmitting}
             >
               <option value="">-- Choose a Task --</option>
               {tasks.map(task => (
@@ -138,20 +190,39 @@ const FocusSession = () => {
 
           {/* Action Buttons */}
           <div className={styles.actions}>
-            <button onClick={toggleTimer} className={styles.primaryBtn}>
+            <button onClick={toggleTimer} className={styles.primaryBtn} disabled={isSubmitting}>
               {isActive ? <IoPause /> : <IoPlay />}
               {isActive ? ' Pause' : ' Begin'}
             </button>
-            <button onClick={resetTimer} className={styles.secondaryBtn}>
+            
+            <button onClick={resetTimer} className={styles.secondaryBtn} disabled={isActive || isSubmitting}>
               <IoRefresh /> Reset
             </button>
+
+            {/* Finish Early Button (Optional but useful) */}
+            {isActive && (
+               <button onClick={handleSessionComplete} className={styles.finishBtn}>
+                 <IoCheckmarkCircle /> Finish
+               </button>
+            )}
           </div>
 
           {/* Audio Controls */}
           <div className={styles.audioSection}>
-            <div className={styles.audioTitle}><IoMusicalNotes /> Ambience</div>
+            <div className={styles.audioTitle}>
+              <IoMusicalNotes /> Ambience 
+              <span className={styles.audioHint}>
+                {audioUrl ? " (Queued)" : ""}
+              </span>
+            </div>
+            
             <div className={styles.audioButtons}>
-              <button onClick={() => setAudioUrl('')} className={!audioUrl ? styles.activeAudio : ''}>None</button>
+              <button 
+                onClick={() => setAudioUrl('')} 
+                className={!audioUrl ? styles.activeAudio : ''}
+              >
+                None
+              </button>
               {AMBIENT_TRACKS.map(track => (
                 <button 
                   key={track.name} 
