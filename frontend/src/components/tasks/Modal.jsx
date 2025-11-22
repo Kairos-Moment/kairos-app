@@ -34,7 +34,7 @@ const Modal = ({ onClose, onTaskCreated }) => {
   useEffect(() => {
     const fetchGoals = async () => {
       try {
-        const response = await apiClient.get('/api/goals');
+        const response = await apiClient.get('/goals');
         setGoals(response.data);
       } catch (err) {
         console.error("Failed to fetch goals for modal:", err);
@@ -79,7 +79,7 @@ const Modal = ({ onClose, onTaskCreated }) => {
     try {
       // Make the API call to the secure endpoint.
       // The user_id is handled automatically by the backend session.
-      const response = await apiClient.post('/api/tasks', taskData);
+      const response = await apiClient.post('/tasks', taskData);
       
       // On success, pass the newly created task object back to the parent component.
       onTaskCreated(response.data);
