@@ -4,6 +4,7 @@ const express = require("express");
 const TasksController = require("../controllers/tasks.controller.js");
 const router = express.Router();
 const { ensureAuthenticated } = require('../middleware/auth.middleware');
+const { toggleSubtask } = require('../controllers/tasks.controller');
 
 // --- THIS IS THE CRITICAL "MERGE" STEP ---
 // Apply the 'ensureAuthenticated' middleware to ALL routes defined in this file.
@@ -31,5 +32,7 @@ router.patch("/:id", TasksController.updateTask);
 // HTTP DELETE /api/tasks/:id
 // (Will now only work for logged-in users)
 router.delete("/:id", TasksController.deleteTask);
+
+router.patch('/subtasks/:id/toggle', toggleSubtask);
 
 module.exports = router;

@@ -95,6 +95,14 @@ const resetDatabase = async () => {
         status VARCHAR(50) DEFAULT 'pending'
       );
 
+      -- Subtasks Table
+      CREATE TABLE subtasks (
+        id SERIAL PRIMARY KEY,
+        task_id INTEGER REFERENCES tasks(id) ON DELETE CASCADE,
+        title VARCHAR(255) NOT NULL,
+        is_completed BOOLEAN DEFAULT false
+      );
+
       -- Habit Logs Table
       CREATE TABLE habit_logs (
         id SERIAL PRIMARY KEY,

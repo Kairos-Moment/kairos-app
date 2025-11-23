@@ -1,19 +1,9 @@
-// frontend/src/components/tasks/NewTaskModal.jsx
-
 import React, { useState, useEffect } from 'react';
 import styles from './Modal.module.css';
 import apiClient from '../../api/axios';
-import { IoClose, IoCalendarOutline, IoAdd } from 'react-icons/io5';
+import { IoClose, IoAdd, IoTrashBin, IoList } from 'react-icons/io5'; // Added IoList, IoTrashBin
 
-/**
- * A modal form for creating a new task.
- * @param {function} onClose - Function to call to close the modal.
- * @param {function} onTaskCreated - Callback function to pass the newly created task to the parent.
- */
 const Modal = ({ onClose, onTaskCreated }) => {
-  // --- STATE MANAGEMENT ---
-
-  // State for each form field
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [isUrgent, setIsUrgent] = useState(false);
@@ -21,42 +11,40 @@ const Modal = ({ onClose, onTaskCreated }) => {
   const [dueDate, setDueDate] = useState('');
   const [goalId, setGoalId] = useState(null);
   
-  // State for managing goals dropdown
+  // ** NEW: Subtasks State **
+  const [subtasks, setSubtasks] = useState([]); 
   const [goals, setGoals] = useState([]);
-  
-  // State for UI feedback
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState(null);
 
-  // --- DATA FETCHING ---
-
-  // Fetch the user's goals when the modal opens to populate the dropdown.
   useEffect(() => {
     const fetchGoals = async () => {
       try {
         const response = await apiClient.get('/goals');
         setGoals(response.data);
       } catch (err) {
-        console.error("Failed to fetch goals for modal:", err);
+        console.error("Failed to fetch goals:", err);
       }
     };
     fetchGoals();
-  }, []); // Empty array ensures this runs only when the component mounts.
+  }, []);
 
-  // --- EVENT HANDLERS ---
+  // --- SUBTASK HANDLERS ---
+  const handleAddSubtask = () => {
+    setSubtasks([...subtasks, { tempId: Date.now(), title: '' }]);
+  };
 
-  /**
-   * Handles the form submission process.
-   * It gathers the form data, sends it to the API, and then calls the
-   * onTaskCreated callback on success.
-   */
+  const handleSubtaskChange = (tempId, value) => {
+    setSubtasks(subtasks.map(st => st.tempId === tempId ? { ...st, title: value } : st));
+  };
+
+  const handleRemoveSubtask = (tempId) => {
+    setSubtasks(subtasks.filter(st => st.tempId !== tempId));
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
-    // Prevent multiple submissions
     if (isSubmitting) return;
-
-    // Basic validation
     if (!title) {
       setError("Task Title is required.");
       return;
@@ -65,33 +53,28 @@ const Modal = ({ onClose, onTaskCreated }) => {
     setIsSubmitting(true);
     setError(null);
 
-    // Construct the data payload for the API
     const taskData = {
       title,
       description,
       is_urgent: isUrgent,
       is_important: isImportant,
-      due_date: dueDate || null, // Send null if the date is empty
-      goal_id: goalId || null,   // Send null if no goal is selected
-      status: 'pending'          // Default status for new tasks
+      due_date: dueDate || null,
+      goal_id: goalId || null,
+      status: 'pending',
+      // Filter out empty lines before sending
+      subtasks: subtasks.filter(st => st.title.trim() !== '')
     };
 
     try {
-      // Make the API call to the secure endpoint.
-      // The user_id is handled automatically by the backend session.
+      // NOTE: Make sure your route is just '/tasks' (apiClient handles base URL)
       const response = await apiClient.post('/tasks', taskData);
-      
-      // On success, pass the newly created task object back to the parent component.
       onTaskCreated(response.data);
-      
     } catch (err) {
       console.error("Failed to create task:", err);
       setError("Could not create task. Please try again.");
-      setIsSubmitting(false); // Re-enable the button on failure
+      setIsSubmitting(false);
     }
   };
-
-  // --- RENDER ---
 
   return (
     <div className={styles.modalOverlay}>
@@ -107,17 +90,42 @@ const Modal = ({ onClose, onTaskCreated }) => {
         </header>
         
         <form className={styles.form} onSubmit={handleSubmit}>
-          {/* Display any submission errors */}
           {error && <p className={styles.errorMessage}>{error}</p>}
 
           <div className={styles.formGroup}>
             <label htmlFor="taskTitle">Task Title</label>
-            <input id="taskTitle" type="text" placeholder="e.g., Design homepage hero section" value={title} onChange={e => setTitle(e.target.value)} required />
+            <input id="taskTitle" type="text" placeholder="Title" value={title} onChange={e => setTitle(e.target.value)} required />
           </div>
 
           <div className={styles.formGroup}>
             <label htmlFor="description">Description</label>
-            <textarea id="description" placeholder="Provide a detailed description of the task..." value={description} onChange={e => setDescription(e.target.value)} />
+            <textarea id="description" placeholder="Description..." value={description} onChange={e => setDescription(e.target.value)} />
+          </div>
+
+          {/* --- NEW SUBTASK UI --- */}
+          <div className={styles.formGroup}>
+            <label style={{display:'flex', alignItems:'center', gap:'5px'}}>
+               <IoList /> Sub-tasks
+            </label>
+            <div style={{display:'flex', flexDirection:'column', gap:'8px', marginBottom:'10px'}}>
+              {subtasks.map((st, index) => (
+                <div key={st.tempId} style={{display:'flex', gap:'10px'}}>
+                  <input 
+                    type="text" 
+                    placeholder={`Step ${index + 1}`}
+                    value={st.title}
+                    onChange={(e) => handleSubtaskChange(st.tempId, e.target.value)}
+                    style={{flex:1}}
+                  />
+                  <button type="button" onClick={() => handleRemoveSubtask(st.tempId)} style={{background:'none', border:'none', color:'red', cursor:'pointer'}}>
+                    <IoTrashBin size={18}/>
+                  </button>
+                </div>
+              ))}
+            </div>
+            <button type="button" onClick={handleAddSubtask} style={{background:'none', border:'1px dashed #ccc', width:'100%', padding:'8px', cursor:'pointer', color:'#666'}}>
+              <IoAdd /> Add Step
+            </button>
           </div>
 
           <div className={styles.formGroup}>
