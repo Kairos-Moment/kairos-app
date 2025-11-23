@@ -38,7 +38,7 @@
 
 .micButton {
   top: 1rem;
-  left: 10rem;
+  left: 18rem;
   background-color: var(--color-surface);
   color: var(--color-text-secondary);
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
