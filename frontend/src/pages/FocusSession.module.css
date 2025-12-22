@@ -169,3 +169,83 @@
     color: white;
     border-color: #D4AF37;
   }
+
+  .configRow {
+    display: flex;
+    gap: 20px;
+    justify-content: center;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+  }
+  
+  .timeInput {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    color: #e0d7c6; /* Ivory/Greek marble color */
+    padding: 8px;
+    border-radius: 4px;
+    width: 80px;
+    font-family: inherit;
+    font-size: 1.1rem;
+    text-align: center;
+  }
+  
+  .timeInput:focus {
+    outline: none;
+    border-color: #d4af37; /* Gold focus */
+  }
+  
+  /* Optional: remove arrows from number input */
+  .timeInput::-webkit-inner-spin-button,
+  .timeInput::-webkit-outer-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+
+  .ytForm {
+    display: flex;
+    align-items: center;
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 8px;
+    padding: 5px 10px;
+    margin-bottom: 15px;
+    border: 1px solid rgba(212, 175, 55, 0.3); /* Soft Gold */
+  }
+  
+  .ytIcon {
+    color: #ff0000;
+    font-size: 1.5rem;
+    margin-right: 10px;
+  }
+  
+  .ytInput {
+    background: transparent;
+    border: none;
+    color: #000000;
+    flex: 1;
+    padding: 8px;
+    outline: none;
+    font-size: 0.9rem;
+  }
+  
+  .ytBtn {
+    background: #d4af37;
+    border: none;
+    color: black;
+    padding: 5px 12px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-weight: bold;
+    transition: 0.3s;
+  }
+  
+  .ytBtn:hover {
+    background: #f1c40f;
+  }
+  
+  .ytStatus {
+    font-size: 0.8rem;
+    color: #d4af37;
+    margin-top: 5px;
+    font-style: italic;
+  }

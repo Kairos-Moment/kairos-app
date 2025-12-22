@@ -5,7 +5,6 @@ import styles from './Timeline.module.css';
 import TimelineItem from './TimelineItem';
 import { format } from 'date-fns';
 
-// A skeleton loader for when tasks are fetching
 const TimelineSkeleton = () => (
   <div className={styles.skeletonItem}>
     <div className={styles.skeletonCircle}></div>
@@ -13,8 +12,9 @@ const TimelineSkeleton = () => (
   </div>
 );
 
-const Timeline = ({ tasks, isLoading }) => {
-  // 1. Handle the loading state
+const Timeline = ({ tasks, isLoading, onEdit, onDelete, onTaskUpdate }) => {
+  
+  // 1. Handle Loading
   if (isLoading) {
     return (
       <div className={styles.timeline}>
@@ -25,7 +25,7 @@ const Timeline = ({ tasks, isLoading }) => {
     );
   }
 
-  // 2. Handle the empty state
+  // 2. Handle Empty State
   if (!tasks || tasks.length === 0) {
     return (
       <div className={styles.emptyState}>
@@ -35,27 +35,23 @@ const Timeline = ({ tasks, isLoading }) => {
     );
   }
 
-  // 3. Render the list
+  // 3. Render List
   return (
     <div className={styles.timeline}>
       {tasks.map(task => {
-        // Simple logic to determine the task type/tag for styling
-        // You can expand this logic based on your needs
         let type = 'Task';
         if (task.is_urgent) type = 'Urgent';
-        if (task.goal_id) type = 'Goal Task'; // Example: if linked to a goal
+        if (task.goal_id) type = 'Goal Task';
 
         return (
           <TimelineItem
             key={task.id}
-            // Format time as "2:30 PM" or "--" if no date
+            task={task}
             hour={task.due_date ? format(new Date(task.due_date), 'h:mm a') : '--'}
             type={type}
-            title={task.title}
-            description={task.description}
-            status={task.status}
-            // CRITICAL ADDITION: Pass the subtasks array down to the item
-            subtasks={task.subtasks} 
+            onEdit={onEdit}
+            onDelete={onDelete}
+            onTaskUpdate={onTaskUpdate} // <--- Pass it down
           />
         );
       })}

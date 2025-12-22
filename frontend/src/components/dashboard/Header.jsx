@@ -23,7 +23,7 @@ const Header = () => {
     return (
       <header className={styles.header}>
         <div className={styles.logo}>
-          <img src="/kairos-logo.svg" alt="Kairos Logo" className={styles.logoIcon} />
+          <img src="/Kairos-Logo.png" alt="Kairos Logo" className={styles.logoIcon} />
           <h1>Kairos</h1>
         </div>
         <div className={styles.userSection}>
@@ -36,7 +36,7 @@ const Header = () => {
   return (
     <header className={styles.header}>
       <div className={styles.logo}>
-        <img src="/kairos-logo.svg" alt="Kairos Logo" className={styles.logoIcon} />
+        <img src="/Kairos-Logo.png" alt="Kairos Logo" className={styles.logoIcon} />
         <h1>Kairos</h1>
       </div>
       <div className={styles.dateDisplay}>{displayDate}</div>

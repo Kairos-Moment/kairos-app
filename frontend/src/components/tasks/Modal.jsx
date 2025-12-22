@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import styles from './Modal.module.css';
 import apiClient from '../../api/axios';
-import { IoClose, IoAdd, IoTrashBin, IoList } from 'react-icons/io5'; // Added IoList, IoTrashBin
+import { IoClose, IoAdd, IoTrashBin, IoList } from 'react-icons/io5';
 
-const Modal = ({ onClose, onTaskCreated }) => {
+const Modal = ({ onClose, onTaskSaved, taskToEdit }) => {
+  // If taskToEdit exists, use its values, otherwise default
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [isUrgent, setIsUrgent] = useState(false);
@@ -11,12 +12,13 @@ const Modal = ({ onClose, onTaskCreated }) => {
   const [dueDate, setDueDate] = useState('');
   const [goalId, setGoalId] = useState(null);
   
-  // ** NEW: Subtasks State **
   const [subtasks, setSubtasks] = useState([]); 
   const [goals, setGoals] = useState([]);
+  
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState(null);
 
+  // 1. Fetch Goals
   useEffect(() => {
     const fetchGoals = async () => {
       try {
@@ -29,7 +31,35 @@ const Modal = ({ onClose, onTaskCreated }) => {
     fetchGoals();
   }, []);
 
-  // --- SUBTASK HANDLERS ---
+  // 2. Populate form if we are in "Edit Mode"
+  useEffect(() => {
+    if (taskToEdit) {
+      setTitle(taskToEdit.title);
+      setDescription(taskToEdit.description || '');
+      setIsUrgent(taskToEdit.is_urgent || false);
+      setIsImportant(taskToEdit.is_important || false);
+      setGoalId(taskToEdit.goal_id || null);
+
+      // Format date for datetime-local input (YYYY-MM-DDTHH:MM)
+      if (taskToEdit.due_date) {
+        const dateObj = new Date(taskToEdit.due_date);
+        // Adjust to local ISO string
+        const offset = dateObj.getTimezoneOffset() * 60000; 
+        const localISOTime = (new Date(dateObj - offset)).toISOString().slice(0, 16);
+        setDueDate(localISOTime);
+      }
+
+      // Handle subtasks
+      // We keep existing IDs to update them, or generate tempIds for UI
+      if (taskToEdit.subtasks && taskToEdit.subtasks.length > 0) {
+        setSubtasks(taskToEdit.subtasks.map(st => ({
+          ...st,
+          tempId: st.id || Date.now() + Math.random() // Ensure unique key
+        })));
+      }
+    }
+  }, [taskToEdit]);
+
   const handleAddSubtask = () => {
     setSubtasks([...subtasks, { tempId: Date.now(), title: '' }]);
   };
@@ -60,18 +90,25 @@ const Modal = ({ onClose, onTaskCreated }) => {
       is_important: isImportant,
       due_date: dueDate || null,
       goal_id: goalId || null,
-      status: 'pending',
-      // Filter out empty lines before sending
+      status: taskToEdit ? taskToEdit.status : 'pending', // Preserve status if editing
       subtasks: subtasks.filter(st => st.title.trim() !== '')
     };
 
     try {
-      // NOTE: Make sure your route is just '/tasks' (apiClient handles base URL)
-      const response = await apiClient.post('/tasks', taskData);
-      onTaskCreated(response.data);
+      let response;
+      if (taskToEdit) {
+        // --- UPDATE EXISTING TASK ---
+        response = await apiClient.put(`/tasks/${taskToEdit.id}`, taskData);
+      } else {
+        // --- CREATE NEW TASK ---
+        response = await apiClient.post('/tasks', taskData);
+      }
+      
+      // Call the unified handler in Dashboard
+      onTaskSaved(response.data);
     } catch (err) {
-      console.error("Failed to create task:", err);
-      setError("Could not create task. Please try again.");
+      console.error("Failed to save task:", err);
+      setError("Could not save task. Please try again.");
       setIsSubmitting(false);
     }
   };
@@ -83,7 +120,8 @@ const Modal = ({ onClose, onTaskCreated }) => {
           <button onClick={onClose} className={styles.cancelButton} disabled={isSubmitting}>
             <IoClose size={24} /> Cancel
           </button>
-          <h2>NEW TASK</h2>
+          {/* Dynamic Title */}
+          <h2>{taskToEdit ? 'EDIT TASK' : 'NEW TASK'}</h2>
           <button onClick={handleSubmit} className={styles.saveButton} disabled={isSubmitting}>
             {isSubmitting ? 'Saving...' : 'Save'}
           </button>
@@ -102,7 +140,6 @@ const Modal = ({ onClose, onTaskCreated }) => {
             <textarea id="description" placeholder="Description..." value={description} onChange={e => setDescription(e.target.value)} />
           </div>
 
-          {/* --- NEW SUBTASK UI --- */}
           <div className={styles.formGroup}>
             <label style={{display:'flex', alignItems:'center', gap:'5px'}}>
                <IoList /> Sub-tasks

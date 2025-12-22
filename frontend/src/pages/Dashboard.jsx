@@ -2,90 +2,80 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import styles from './Dashboard.module.css';
-import apiClient from '../api/axios'; // Still needed for insights, can be refactored later
+import apiClient from '../api/axios';
 
-// --- NEW: Import the specific API functions ---
-import { getTasks } from '../api/tasksAPI'; 
+// Import API functions
+import { getTasks, deleteTask } from '../api/tasksAPI'; 
 
 // Import Child Components
 import OracleInsight from '../components/dashboard/OracleInsight';
 import Timeline from '../components/dashboard/Timeline';
 import Modal from '../components/tasks/Modal';
 
-// Import Icons and other utilities/hooks
+// Import Icons and hooks
 import { IoAdd, IoMic } from 'react-icons/io5';
 import { useSpeechRecognition } from '../hooks/useSpeechRecognition';
 import { processCommand } from '../utils/speech';
 
-/**
- * The main dashboard page of the Kairos application.
- * This component is responsible for:
- * - Fetching initial data for Oracle insights and the user's tasks.
- * - Managing the state for tasks and the visibility of the "New Task" modal.
- * - Handling real-time updates when a new task is created.
- * - Orchestrating the voice command functionality.
- */
 const Dashboard = () => {
   // --- STATE MANAGEMENT ---
 
-  // State for the "New Task" modal visibility
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingTask, setEditingTask] = useState(null);
 
-  // State for the Oracle's insight data
   const [insightData, setInsightData] = useState(null);
   const [isLoadingInsights, setIsLoadingInsights] = useState(true);
 
-  // State for the user's tasks displayed in the timeline
   const [tasks, setTasks] = useState([]);
   const [isLoadingTasks, setIsLoadingTasks] = useState(true);
 
-  // Destructure properties from our custom speech recognition hook
   const { isListening, transcript, startListening, stopListening, hasSupport } = useSpeechRecognition();
 
-  // --- DATA FETCHING ---
+  // --- DATA FETCHING FUNCTIONS ---
 
-  // Fetches tasks using the dedicated API function.
-  const fetchTasks = useCallback(async () => {
+  // 1. Fetch Oracle Insights (Memoized to be called from handlers)
+  const fetchOracleInsights = useCallback(async () => {
     try {
-      setIsLoadingTasks(true);
-      const tasksData = await getTasks(); // Use the clean API function
-      setTasks(tasksData);
+      // Note: We don't set isLoadingInsights(true) here to avoid flashing the Skeleton 
+      // every time we check off a box. We only load silently.
+      const response = await apiClient.get('/insights');
+      setInsightData(response.data);
     } catch (error) {
-      console.error("Dashboard failed to fetch tasks. This error is caught here after being thrown by tasksAPI.", error);
-      // Optionally, set an error state to show a message in the UI.
-    } finally {
-      setIsLoadingTasks(false);
+      console.error("Failed to refresh Oracle insights:", error);
     }
   }, []);
 
-  // This `useEffect` hook runs once when the component is first mounted to load all initial data.
+  // 2. Fetch Tasks (Memoized)
+  const fetchTasks = useCallback(async () => {
+    try {
+      // We only show the loader on the very first mount, managed by useEffect below.
+      // Subsequent calls (like updates) happen silently or with optimistic UI.
+      const tasksData = await getTasks(); 
+      setTasks(tasksData);
+    } catch (error) {
+      console.error("Dashboard failed to fetch tasks.", error);
+    }
+  }, []);
+
+  // --- INITIAL LOAD ---
   useEffect(() => {
     const fetchInitialData = async () => {
-      // Run requests in parallel for a faster user experience.
+      setIsLoadingTasks(true);
+      setIsLoadingInsights(true);
+      
       await Promise.all([
-        // Fetch Oracle insights
-        (async () => {
-          try {
-            setIsLoadingInsights(true);
-            const response = await apiClient.get('/insights');
-            setInsightData(response.data);
-          } catch (error) {
-            console.error("Failed to fetch Oracle insights:", error);
-            setInsightData({ message: 'Could not load insights right now.', tasks: [] });
-          } finally {
-            setIsLoadingInsights(false);
-          }
-        })(),
-        
-        // Fetch user tasks using our refactored function
+        fetchOracleInsights(),
         fetchTasks()
       ]);
+
+      setIsLoadingTasks(false);
+      setIsLoadingInsights(false);
     };
 
     fetchInitialData();
-  }, [fetchTasks]); // The dependency array includes `fetchTasks` as per React's hook rules.
+  }, [fetchOracleInsights, fetchTasks]);
 
-  // Effect hook to process the voice command after the user has finished speaking.
+  // --- VOICE COMMAND HANDLER ---
   useEffect(() => {
     if (!isListening && transcript) {
       processCommand(transcript, insightData);
@@ -95,24 +85,69 @@ const Dashboard = () => {
   // --- EVENT HANDLERS ---
 
   /**
-   * This handler is called by the NewTaskModal after a new task is successfully created.
-   * It updates the local state to show the new task immediately without a page refresh.
-   * @param {object} newTask - The new task object returned from the API.
+   * Called when the Modal saves (Create or Update).
+   * We re-fetch everything to ensure backend sync (IDs, subtasks, Oracle alerts).
    */
-  const handleTaskCreated = (newTask) => {
-    // Add the new task to the state and re-sort the array by due date.
-    setTasks(prevTasks => 
-      [...prevTasks, newTask].sort((a, b) => new Date(a.due_date) - new Date(b.due_date))
-    );
-    // Close the modal upon successful creation.
+  const handleTaskSaved = async (savedTask) => {
     setIsModalOpen(false);
+    setEditingTask(null);
+    
+    // Refresh both lists. 
+    // If the task was urgent, the Oracle needs to know immediately.
+    await fetchTasks();
+    await fetchOracleInsights();
+  };
+
+  /**
+   * Called directly when the user confirms deletion.
+   */
+  const handleDeleteClick = async (taskId) => {
+    if (window.confirm("Are you sure you want to delete this task?")) {
+      try {
+        await deleteTask(taskId);
+        
+        // Optimistic update: Remove from UI immediately
+        setTasks(prevTasks => prevTasks.filter(t => t.id !== taskId));
+        
+        // REFRESH ORACLE: If we deleted an urgent task, the alert must vanish.
+        fetchOracleInsights();
+
+      } catch (error) {
+        console.error("Failed to delete task", error);
+        alert("Could not delete task.");
+        fetchTasks(); // Revert on error
+      }
+    }
+  };
+
+  /**
+   * Called by TimelineItem when a task status changes (e.g. auto-completed via subtasks).
+   */
+  const handleTaskUpdate = async () => {
+    // Refresh tasks to update colors/sorting
+    await fetchTasks();
+    // Refresh Oracle to remove alerts if task is now completed
+    await fetchOracleInsights();
+  };
+
+  const openNewTaskModal = () => {
+    setEditingTask(null);
+    setIsModalOpen(true);
+  };
+
+  const handleEditClick = (taskToEdit) => {
+    setEditingTask(taskToEdit);
+    setIsModalOpen(true);
+  };
+
+  const handleModalClose = () => {
+    setIsModalOpen(false);
+    setEditingTask(null);
   };
 
   // --- RENDER ---
 
   return (
-    // This component no longer renders Header or BottomNav, as that is handled by MainLayout.
-    // The root element is a simple div that acts as the content container.
     <div className={styles.dashboardContent}>
 
       <div className={styles.oracleSection}>
@@ -130,22 +165,32 @@ const Dashboard = () => {
 
       <div className={styles.timelineSection}>
         <h2 className={styles.timelineHeader}>Today's Timeline</h2>
-        {/* Pass the live tasks and their loading state down to the Timeline component */}
-        <Timeline tasks={tasks} isLoading={isLoadingTasks} />
+        
+        <Timeline 
+          tasks={tasks} 
+          isLoading={isLoadingTasks} 
+          onEdit={handleEditClick} 
+          onDelete={handleDeleteClick} 
+          onTaskUpdate={handleTaskUpdate} // <--- Passed Down
+        />
+        
         <button
           className={styles.floatingActionButton}
-          onClick={() => setIsModalOpen(true)}
+          onClick={openNewTaskModal} 
         >
           <IoAdd size={32} />
         </button>
       </div>
       
-      {/* Visual indicator that the app is listening */}
       {isListening && <div className={styles.transcriptOverlay}>Listening...</div>}
 
-      {/* The "New Task" modal, which is conditionally rendered */}
-      {/* It receives the handler function to communicate back to this page */}
-      {isModalOpen && <Modal onTaskCreated={handleTaskCreated} onClose={() => setIsModalOpen(false)} />}
+      {isModalOpen && (
+        <Modal 
+          taskToEdit={editingTask}       
+          onTaskSaved={handleTaskSaved}  
+          onClose={handleModalClose}
+        />
+      )}
       
     </div>
   );

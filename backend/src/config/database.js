@@ -1,15 +1,10 @@
-// By: Jorge Valdes-Santiago
-//
-//
-// This script retrieves the environment variables from the
-// local .env file and sets up the resource pool to
-// allow the server to communicate with the database.
-const path = require('path');
-const pg = require("pg"); // import pg from "pg";
-// It uses the current working directory from where you ran 'npm run dev'
-require('dotenv').config({ path: path.join(process.cwd(), '../.env') });
+// backend/src/config/database.js
 
-const isProduction = process.env.NODE_ENV === 'production';
+const path = require('path');
+const pg = require("pg"); 
+
+// Load the .env from the root
+require('dotenv').config({ path: path.join(process.cwd(), '../.env') });
 
 const config = {
   user: process.env.PGUSER,
@@ -19,15 +14,16 @@ const config = {
   database: process.env.PGDATABASE
 };
 
-// 5. Conditionally add SSL configuration ONLY for production
-if (isProduction) {
-  // This block will run when your app is on Render (because NODE_ENV is 'production')
+// --- SSL CONFIGURATION ---
+// Render databases REQUIRE SSL connections from outside (your local computer).
+// 1. If we are in Production (running on Render), we need SSL.
+// 2. If we are Local but connecting to a Render Host, we ALSO need SSL.
+if (process.env.NODE_ENV === 'production' || (config.host && config.host.includes('render.com'))) {
   config.ssl = {
-    rejectUnauthorized: false,
+    rejectUnauthorized: false, // Required for Render's self-signed certs
   };
 }
 
-
-//export const pool = new pg.Pool(config);
 const pool = new pg.Pool(config);
+
 module.exports = { pool };

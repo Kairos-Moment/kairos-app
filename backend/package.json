@@ -4,7 +4,7 @@
   "main": "index.js",
   "scripts": {
     "start": "node src/server.js",
-    "dev": "cross-env NODE_ENV=production nodemon src/server.js",
+    "dev": "cross-env NODE_ENV=development nodemon src/server.js",
     "reset": "cross-env NODE_ENV=production node src/config/reset.js"
   },
   "keywords": [],

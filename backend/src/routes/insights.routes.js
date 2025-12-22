@@ -1,11 +1,18 @@
+// backend/src/routes/insights.routes.js
+
 const express = require('express');
 const router = express.Router();
-const { getOracleInsight } = require('../controllers/insights.controller');
+
+// --- FIX IS HERE: Import BOTH functions ---
+const { getOracleInsight, getWeeklyReport } = require('../controllers/insights.controller');
 const { ensureAuthenticated } = require('../middleware/auth.middleware');
 
 router.use(ensureAuthenticated);
 
-// Defines the route: GET /api/insights/
+// Dashboard Widget
 router.get('/', getOracleInsight);
+
+// Weekly Report Page
+router.get('/weekly', getWeeklyReport);
 
 module.exports = router;

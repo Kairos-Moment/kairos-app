@@ -2,55 +2,54 @@
 
 import React from 'react';
 import styles from './OracleInsight.module.css';
-import { GiScrollQuill} from 'react-icons/gi'; // A more thematic icon for tasks
-import { GiLaurels } from 'react-icons/gi'; // A thematic icon for the title
+// Import a Hazard icon for urgent tasks
+import { GiScrollQuill, GiLaurels, GiHazardSign } from 'react-icons/gi';
 
-// A dedicated component for the loading state skeleton
 const SkeletonLoader = () => (
   <div className={`${styles.insightCard} ${styles.loading}`}>
-    <h2>
-      <GiLaurels size={28} /> The Oracle's Insight
-    </h2>
+    <h2><GiLaurels size={28} /> The Oracle's Insight</h2>
     <div className={styles.skeleton} style={{ width: '80%', height: '1.2rem', marginBottom: '0.5rem' }} />
     <div className={styles.skeleton} style={{ width: '60%', height: '1.2rem' }} />
-    <ul className={styles.taskList} style={{ marginTop: '1.5rem' }}>
-      <li><div className={styles.skeleton} style={{ width: '90%', height: '1.5rem' }} /></li>
-      <li><div className={styles.skeleton} style={{ width: '70%', height: '1.5rem' }} /></li>
-    </ul>
   </div>
 );
 
 const OracleInsight = ({ insightData, isLoading }) => {
-  // 1. Render the Skeleton Loader while data is being fetched.
   if (isLoading || !insightData) {
     return <SkeletonLoader />;
   }
 
   const { message, tasks } = insightData;
 
-  // 2. Render the main component once data is available.
+  // Check if any task in the list is marked as urgent
+  const hasUrgent = tasks?.some(t => t.is_urgent);
+
   return (
-    <div className={styles.insightCard}>
-      <h2>
-        <GiLaurels size={28} /> The Oracle's Insight
+    // If urgent, add the 'urgentCard' class for Red styling
+    <div className={`${styles.insightCard} ${hasUrgent ? styles.urgentCard : ''}`}>
+      <h2 className={hasUrgent ? styles.urgentHeader : ''}>
+        {hasUrgent ? <GiHazardSign size={28} /> : <GiLaurels size={28} />} 
+        {hasUrgent ? " Priority Alert" : " The Oracle's Insight"}
       </h2>
-      <p>{message}</p>
       
-      {/* 3. Check if there are tasks to display */}
+      <p className={styles.oracleMessage}>{message}</p>
+      
       {tasks && tasks.length > 0 ? (
         <ul className={styles.taskList}>
           {tasks.map((task, index) => (
-            <li key={index}>
-              <span className={styles.taskIcon}><GiScrollQuill /></span>
-              <span className={styles.taskText}>{task.text}</span>
-              <span className={styles.taskDue}>{task.due}</span>
+            <li key={index} className={task.is_urgent ? styles.urgentTask : ''}>
+              <span className={styles.taskIcon}>
+                {task.is_urgent ? <GiHazardSign /> : <GiScrollQuill />}
+              </span>
+              <div className={styles.taskDetails}>
+                <span className={styles.taskText}>{task.text}</span>
+                <span className={styles.taskDue}>Due: {task.due}</span>
+              </div>
             </li>
           ))}
         </ul>
       ) : (
-        // 4. Display a friendly message if there are no tasks.
         <div className={styles.noTasksMessage}>
-          No high-priority tasks for today. A perfect moment to plan or rest.
+          No high-priority tasks. The path is clear.
         </div>
       )}
     </div>
