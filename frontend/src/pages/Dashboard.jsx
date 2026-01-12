@@ -1,43 +1,35 @@
 // frontend/src/pages/DashboardPage.jsx
 
 import React, { useState, useEffect, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom'; // 1. Import Navigate
 import styles from './Dashboard.module.css';
 import apiClient from '../api/axios';
 
-// Import API functions
 import { getTasks, deleteTask } from '../api/tasksAPI'; 
-
-// Import Child Components
 import OracleInsight from '../components/dashboard/OracleInsight';
 import Timeline from '../components/dashboard/Timeline';
 import Modal from '../components/tasks/Modal';
 
-// Import Icons and hooks
 import { IoAdd, IoMic } from 'react-icons/io5';
 import { useSpeechRecognition } from '../hooks/useSpeechRecognition';
 import { processCommand } from '../utils/speech';
 
 const Dashboard = () => {
-  // --- STATE MANAGEMENT ---
+  const navigate = useNavigate(); // 2. Initialize Navigate
 
+  // --- STATE MANAGEMENT ---
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingTask, setEditingTask] = useState(null);
-
   const [insightData, setInsightData] = useState(null);
   const [isLoadingInsights, setIsLoadingInsights] = useState(true);
-
   const [tasks, setTasks] = useState([]);
   const [isLoadingTasks, setIsLoadingTasks] = useState(true);
 
   const { isListening, transcript, startListening, stopListening, hasSupport } = useSpeechRecognition();
 
-  // --- DATA FETCHING FUNCTIONS ---
-
-  // 1. Fetch Oracle Insights (Memoized to be called from handlers)
+  // --- DATA FETCHING ---
   const fetchOracleInsights = useCallback(async () => {
     try {
-      // Note: We don't set isLoadingInsights(true) here to avoid flashing the Skeleton 
-      // every time we check off a box. We only load silently.
       const response = await apiClient.get('/insights');
       setInsightData(response.data);
     } catch (error) {
@@ -45,11 +37,8 @@ const Dashboard = () => {
     }
   }, []);
 
-  // 2. Fetch Tasks (Memoized)
   const fetchTasks = useCallback(async () => {
     try {
-      // We only show the loader on the very first mount, managed by useEffect below.
-      // Subsequent calls (like updates) happen silently or with optimistic UI.
       const tasksData = await getTasks(); 
       setTasks(tasksData);
     } catch (error) {
@@ -57,21 +46,14 @@ const Dashboard = () => {
     }
   }, []);
 
-  // --- INITIAL LOAD ---
   useEffect(() => {
     const fetchInitialData = async () => {
       setIsLoadingTasks(true);
       setIsLoadingInsights(true);
-      
-      await Promise.all([
-        fetchOracleInsights(),
-        fetchTasks()
-      ]);
-
+      await Promise.all([fetchOracleInsights(), fetchTasks()]);
       setIsLoadingTasks(false);
       setIsLoadingInsights(false);
     };
-
     fetchInitialData();
   }, [fetchOracleInsights, fetchTasks]);
 
@@ -84,49 +66,35 @@ const Dashboard = () => {
 
   // --- EVENT HANDLERS ---
 
-  /**
-   * Called when the Modal saves (Create or Update).
-   * We re-fetch everything to ensure backend sync (IDs, subtasks, Oracle alerts).
-   */
+  // 3. NEW: Launch Dynamic Focus Session
+  const handleStartFocus = (taskId) => {
+    // Navigate to focus page with the task ID as a query parameter
+    navigate(`/focus-sessions?taskId=${taskId}`);
+  };
+
   const handleTaskSaved = async (savedTask) => {
     setIsModalOpen(false);
     setEditingTask(null);
-    
-    // Refresh both lists. 
-    // If the task was urgent, the Oracle needs to know immediately.
     await fetchTasks();
     await fetchOracleInsights();
   };
 
-  /**
-   * Called directly when the user confirms deletion.
-   */
   const handleDeleteClick = async (taskId) => {
     if (window.confirm("Are you sure you want to delete this task?")) {
       try {
         await deleteTask(taskId);
-        
-        // Optimistic update: Remove from UI immediately
         setTasks(prevTasks => prevTasks.filter(t => t.id !== taskId));
-        
-        // REFRESH ORACLE: If we deleted an urgent task, the alert must vanish.
         fetchOracleInsights();
-
       } catch (error) {
         console.error("Failed to delete task", error);
         alert("Could not delete task.");
-        fetchTasks(); // Revert on error
+        fetchTasks(); 
       }
     }
   };
 
-  /**
-   * Called by TimelineItem when a task status changes (e.g. auto-completed via subtasks).
-   */
   const handleTaskUpdate = async () => {
-    // Refresh tasks to update colors/sorting
     await fetchTasks();
-    // Refresh Oracle to remove alerts if task is now completed
     await fetchOracleInsights();
   };
 
@@ -145,11 +113,8 @@ const Dashboard = () => {
     setEditingTask(null);
   };
 
-  // --- RENDER ---
-
   return (
     <div className={styles.dashboardContent}>
-
       <div className={styles.oracleSection}>
         <OracleInsight insightData={insightData} isLoading={isLoadingInsights} />
         {hasSupport && (
@@ -171,7 +136,8 @@ const Dashboard = () => {
           isLoading={isLoadingTasks} 
           onEdit={handleEditClick} 
           onDelete={handleDeleteClick} 
-          onTaskUpdate={handleTaskUpdate} // <--- Passed Down
+          onTaskUpdate={handleTaskUpdate}
+          onStartFocus={handleStartFocus} // 4. Pass the new handler down
         />
         
         <button
@@ -191,7 +157,6 @@ const Dashboard = () => {
           onClose={handleModalClose}
         />
       )}
-      
     </div>
   );
 };

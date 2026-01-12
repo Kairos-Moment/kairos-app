@@ -150,8 +150,6 @@
 
 .chevron {
   transition: transform 0.3s ease;
-  color: #888;
-  margin-left: 5px; /* Separate chevron slightly from buttons */
 }
 .chevron.open {
   transform: rotate(180deg);
@@ -196,13 +194,15 @@
 }
 
 .focusBtn {
-  color: #d4af37; /* Gold color to match Temple theme */
-  transition: transform 0.2s ease, color 0.2s ease;
+  color: #d4af37;
+  background: rgba(212, 175, 55, 0.1);
 }
 
 .focusBtn:hover {
-  color: #f1c40f;
-  transform: scale(1.2); /* Slight pop effect */
+  background: #d4af37;
+  color: #1a1a1a;
+  transform: scale(1.1);
+  box-shadow: 0 0 10px rgba(212, 175, 55, 0.5);
 }
 
 /* Ensure the action buttons are spaced nicely */
@@ -210,4 +210,26 @@
   display: flex;
   gap: 12px;
   align-items: center;
+}
+
+/* Strikethrough for completed items */
+.strikeTitle {
+  text-decoration: line-through;
+  color: #888;
+}
+
+.doneIcon {
+  margin-left: 8px;
+  color: #2ecc71;
+  vertical-align: middle;
+}
+
+.completedTask {
+  opacity: 0.7;
+}
+
+/* Checkbox alignment */
+.checkbox {
+  margin-right: 12px;
+  cursor: pointer;
 }

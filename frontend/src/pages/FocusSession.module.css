@@ -181,7 +181,7 @@
   .timeInput {
     background: rgba(255, 255, 255, 0.05);
     border: 1px solid rgba(255, 255, 255, 0.2);
-    color: #e0d7c6; /* Ivory/Greek marble color */
+    color: #41b237; /* Ivory/Greek marble color */
     padding: 8px;
     border-radius: 4px;
     width: 80px;
@@ -192,7 +192,7 @@
   
   .timeInput:focus {
     outline: none;
-    border-color: #d4af37; /* Gold focus */
+    border-color: #000000; /* Gold focus */
   }
   
   /* Optional: remove arrows from number input */
