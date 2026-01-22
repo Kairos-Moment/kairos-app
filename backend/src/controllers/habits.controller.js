@@ -9,14 +9,14 @@ const createHabit = async (req, res) => {
   try {
     // SECURITY: Get the user ID from the authenticated session.
     const userId = req.user.id;
-    
+
     // Get habit details from the request body.
-    const { title, description, frequency, is_active } = req.body;
+    const { title, description, frequency, is_active, target_count } = req.body;
 
     // The 'created_at' column is handled by the database default.
     const query = `
-      INSERT INTO habits (user_id, title, description, frequency, is_active)
-      VALUES ($1, $2, $3, $4, $5)
+      INSERT INTO habits (user_id, title, description, frequency, is_active, target_count)
+      VALUES ($1, $2, $3, $4, $5, $6)
       RETURNING *; -- Return the newly created habit
     `;
 
@@ -26,6 +26,7 @@ const createHabit = async (req, res) => {
       description,
       frequency,
       is_active,
+      target_count || 1,
     ]);
 
     res.status(201).json(results.rows[0]);
@@ -85,14 +86,14 @@ const updateHabit = async (req, res) => {
   try {
     const userId = req.user.id;
     const habitId = parseInt(req.params.id);
-    const { title, description, frequency, is_active } = req.body;
+    const { title, description, frequency, is_active, target_count } = req.body;
 
     // BUG FIX: The original query was updating the 'tasks' table instead of 'habits'.
     // SECURITY: The WHERE clause checks both habit ID and user ID before updating.
     const query = `
       UPDATE habits 
-      SET title = $1, description = $2, frequency = $3, is_active = $4 
-      WHERE id = $5 AND user_id = $6
+      SET title = $1, description = $2, frequency = $3, is_active = $4, target_count = $5
+      WHERE id = $6 AND user_id = $7
       RETURNING *; -- Return the updated habit
     `;
     const results = await pool.query(query, [
@@ -100,6 +101,7 @@ const updateHabit = async (req, res) => {
       description,
       frequency,
       is_active,
+      target_count || 1,
       habitId,
       userId,
     ]);
@@ -132,7 +134,7 @@ const deleteHabit = async (req, res) => {
       // If no rows were deleted, the habit didn't exist or didn't belong to the user.
       return res.status(404).json({ message: "Habit not found or you do not have permission to delete it." });
     }
-    
+
     // BUG FIX: The original function did not send a response on success.
     res.status(200).json({ message: `Habit with ID ${habitId} deleted successfully.` });
   } catch (error) {

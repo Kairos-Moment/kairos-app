@@ -10,11 +10,11 @@ const Modal = ({ onClose, onTaskSaved, taskToEdit }) => {
   const [isUrgent, setIsUrgent] = useState(false);
   const [isImportant, setIsImportant] = useState(false);
   const [dueDate, setDueDate] = useState('');
-  const [goalId, setGoalId] = useState(null);
-  
-  const [subtasks, setSubtasks] = useState([]); 
+  const [goalName, setGoalName] = useState(''); // Changed from goalId to goalName input
+
+  const [subtasks, setSubtasks] = useState([]);
   const [goals, setGoals] = useState([]);
-  
+
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState(null);
 
@@ -38,13 +38,19 @@ const Modal = ({ onClose, onTaskSaved, taskToEdit }) => {
       setDescription(taskToEdit.description || '');
       setIsUrgent(taskToEdit.is_urgent || false);
       setIsImportant(taskToEdit.is_important || false);
-      setGoalId(taskToEdit.goal_id || null);
+      // setGoalId(taskToEdit.goal_id || null); // We now derive name from goal_id
+
+      // Find the goal name if we have a goal_id
+      if (taskToEdit.goal_id && goals.length > 0) {
+        const foundGoal = goals.find(g => g.id === taskToEdit.goal_id);
+        if (foundGoal) setGoalName(foundGoal.title);
+      }
 
       // Format date for datetime-local input (YYYY-MM-DDTHH:MM)
       if (taskToEdit.due_date) {
         const dateObj = new Date(taskToEdit.due_date);
         // Adjust to local ISO string
-        const offset = dateObj.getTimezoneOffset() * 60000; 
+        const offset = dateObj.getTimezoneOffset() * 60000;
         const localISOTime = (new Date(dateObj - offset)).toISOString().slice(0, 16);
         setDueDate(localISOTime);
       }
@@ -58,7 +64,7 @@ const Modal = ({ onClose, onTaskSaved, taskToEdit }) => {
         })));
       }
     }
-  }, [taskToEdit]);
+  }, [taskToEdit, goals]); // Added goals dependency to look up name
 
   const handleAddSubtask = () => {
     setSubtasks([...subtasks, { tempId: Date.now(), title: '' }]);
@@ -79,17 +85,42 @@ const Modal = ({ onClose, onTaskSaved, taskToEdit }) => {
       setError("Task Title is required.");
       return;
     }
-    
+
     setIsSubmitting(true);
     setError(null);
+
+    // Goal Logic: Find ID or Create New
+    let finalGoalId = null;
+    if (goalName.trim()) {
+      const existingGoal = goals.find(g => g.title.toLowerCase() === goalName.trim().toLowerCase());
+      if (existingGoal) {
+        finalGoalId = existingGoal.id;
+      } else {
+        try {
+          // Create new goal on the fly
+          const goalRes = await apiClient.post('/goals', {
+            title: goalName,
+            status: 'active',
+            description: 'Created from task modal'
+          });
+          finalGoalId = goalRes.data.id;
+        } catch (err) {
+          console.error("Failed to create new goal:", err);
+          // Decide if we stop or proceed without goal. 
+          // For now, let's stop and alert user, or just proceed with null.
+          // Let's proceed with null but warn.
+        }
+      }
+    }
 
     const taskData = {
       title,
       description,
       is_urgent: isUrgent,
       is_important: isImportant,
-      due_date: dueDate || null,
-      goal_id: goalId || null,
+      // Convert local datetime-local string to ISO UTC string
+      due_date: dueDate ? new Date(dueDate).toISOString() : null,
+      goal_id: finalGoalId,
       status: taskToEdit ? taskToEdit.status : 'pending', // Preserve status if editing
       subtasks: subtasks.filter(st => st.title.trim() !== '')
     };
@@ -103,7 +134,7 @@ const Modal = ({ onClose, onTaskSaved, taskToEdit }) => {
         // --- CREATE NEW TASK ---
         response = await apiClient.post('/tasks', taskData);
       }
-      
+
       // Call the unified handler in Dashboard
       onTaskSaved(response.data);
     } catch (err) {
@@ -126,7 +157,7 @@ const Modal = ({ onClose, onTaskSaved, taskToEdit }) => {
             {isSubmitting ? 'Saving...' : 'Save'}
           </button>
         </header>
-        
+
         <form className={styles.form} onSubmit={handleSubmit}>
           {error && <p className={styles.errorMessage}>{error}</p>}
 
@@ -141,26 +172,26 @@ const Modal = ({ onClose, onTaskSaved, taskToEdit }) => {
           </div>
 
           <div className={styles.formGroup}>
-            <label style={{display:'flex', alignItems:'center', gap:'5px'}}>
-               <IoList /> Sub-tasks
+            <label style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+              <IoList /> Sub-tasks
             </label>
-            <div style={{display:'flex', flexDirection:'column', gap:'8px', marginBottom:'10px'}}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '10px' }}>
               {subtasks.map((st, index) => (
-                <div key={st.tempId} style={{display:'flex', gap:'10px'}}>
-                  <input 
-                    type="text" 
+                <div key={st.tempId} style={{ display: 'flex', gap: '10px' }}>
+                  <input
+                    type="text"
                     placeholder={`Step ${index + 1}`}
                     value={st.title}
                     onChange={(e) => handleSubtaskChange(st.tempId, e.target.value)}
-                    style={{flex:1}}
+                    style={{ flex: 1 }}
                   />
-                  <button type="button" onClick={() => handleRemoveSubtask(st.tempId)} style={{background:'none', border:'none', color:'red', cursor:'pointer'}}>
-                    <IoTrashBin size={18}/>
+                  <button type="button" onClick={() => handleRemoveSubtask(st.tempId)} style={{ background: 'none', border: 'none', color: 'red', cursor: 'pointer' }}>
+                    <IoTrashBin size={18} />
                   </button>
                 </div>
               ))}
             </div>
-            <button type="button" onClick={handleAddSubtask} style={{background:'none', border:'1px dashed #ccc', width:'100%', padding:'8px', cursor:'pointer', color:'#666'}}>
+            <button type="button" onClick={handleAddSubtask} style={{ background: 'none', border: '1px dashed #ccc', width: '100%', padding: '8px', cursor: 'pointer', color: '#666' }}>
               <IoAdd /> Add Step
             </button>
           </div>
@@ -177,15 +208,22 @@ const Modal = ({ onClose, onTaskSaved, taskToEdit }) => {
             <label htmlFor="dueDate">Due Date</label>
             <input id="dueDate" type="datetime-local" value={dueDate} onChange={e => setDueDate(e.target.value)} />
           </div>
-          
+
           <div className={styles.formGroup}>
-            <label htmlFor="linkToGoal">Link to Goal</label>
-            <select id="linkToGoal" value={goalId || ''} onChange={e => setGoalId(e.target.value ? parseInt(e.target.value) : null)}>
-              <option value="">Select a goal (optional)</option>
+            <label htmlFor="goalInput">Categorized Goal</label>
+            <input
+              id="goalInput"
+              type="text"
+              list="goal-options"
+              value={goalName}
+              onChange={(e) => setGoalName(e.target.value)}
+              placeholder="Type to search or create a new goal..."
+            />
+            <datalist id="goal-options">
               {goals.map(goal => (
-                <option key={goal.id} value={goal.id}>{goal.title}</option>
+                <option key={goal.id} value={goal.title} />
               ))}
-            </select>
+            </datalist>
           </div>
         </form>
       </div>

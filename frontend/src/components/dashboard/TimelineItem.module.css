@@ -3,38 +3,46 @@
 .timelineItem {
   display: flex;
   gap: 1.5rem;
-  margin-bottom: 1.5rem; /* Add space between items */
+  margin-bottom: 1.5rem;
+  /* Add space between items */
 }
 
 .timeMarker {
   display: flex;
   flex-direction: column;
   align-items: center;
-  position: relative; /* Make it a positioning context for the line */
-  z-index: 1; /* Ensure the circle is above the main timeline line */
+  position: relative;
+  /* Make it a positioning context for the line */
+  z-index: 1;
+  /* Ensure the circle is above the main timeline line */
 }
 
 .timeMarker span {
-  background-color: var(--color-primary); /* Use deep blue for the circle */
+  background-color: var(--color-primary);
+  /* Use deep blue for the circle */
   color: white;
+  white-space: nowrap;
   border-radius: 50%;
-  width: 36px;
-  height: 36px;
+  width: 60px;
+  height: 60px;
   display: flex;
   justify-content: center;
   align-items: center;
   font-weight: 700;
-  font-size: 0.9rem;
-  border: 2px solid var(--color-background); /* Creates a "cutout" effect over the line */
+  font-size: 0.8rem;
+  border: 2px solid var(--color-background);
+  /* Creates a "cutout" effect over the line */
 }
 
 .card {
   flex-grow: 1;
-  background-color: var(--color-surface); /* White surface for the card */
+  background-color: var(--color-surface);
+  /* White surface for the card */
   border: 1px solid var(--color-border);
   border-radius: 12px;
   padding: 1.25rem 1.5rem;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.04); /* Softer shadow */
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.04);
+  /* Softer shadow */
   transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
 }
 
@@ -68,34 +76,39 @@
   margin: 0 0 0.5rem 0;
   font-size: 1.25rem;
   color: var(--color-text-primary);
-  font-family: var(--font-body); /* Use body font for readability, or heading for style */
+  font-family: var(--font-body);
+  /* Use body font for readability, or heading for style */
   font-weight: 700;
 }
 
 .cardBody p {
   margin: 0;
   color: var(--color-text-secondary);
-  line-height: 1.6;
+  line-height: 1;
 }
 
 /* --- Themed Tag Styles --- */
 /* Urgent Task: Gold accent to signify importance */
 .urgent-task {
-  background-color: #fff8e1; /* Light gold/yellow background */
-  color: #d4af37; /* Gold text */
+  background-color: #fff8e1;
+  /* Light gold/yellow background */
+  color: #d4af37;
+  /* Gold text */
   border: 1px solid #ffecb3;
 }
 
 /* Calendar Event: Blue to match the primary theme */
 .calendar-event {
-  background-color: #eef2ff; /* Light primary blue */
+  background-color: #eef2ff;
+  /* Light primary blue */
   color: var(--color-primary);
   border: 1px solid #dbe4ff;
 }
 
 /* Scheduled Task: Neutral gray */
 .scheduled-task {
-  background-color: #f8f9fa; /* Background color */
+  background-color: #f8f9fa;
+  /* Background color */
   color: var(--color-text-secondary);
   border: 1px solid #e9ecef;
 }
@@ -108,8 +121,9 @@
   margin-bottom: 8px;
   cursor: pointer;
   /* Add this to prevent accidental text selection when clicking rapidly */
-  user-select: none; 
+  user-select: none;
 }
+
 .headerContent {
   display: flex;
   align-items: center;
@@ -128,7 +142,8 @@
   background: none;
   border: none;
   cursor: pointer;
-  color: #888; /* Subtle gray */
+  color: #888;
+  /* Subtle gray */
   display: flex;
   align-items: center;
   justify-content: center;
@@ -151,6 +166,7 @@
 .chevron {
   transition: transform 0.3s ease;
 }
+
 .chevron.open {
   transform: rotate(180deg);
 }
@@ -161,11 +177,13 @@
   margin-top: 1rem;
   padding-top: 1rem;
 }
+
 .accordionContent h4 {
   margin: 0 0 0.75rem 0;
   color: var(--color-text-primary);
   font-weight: 600;
 }
+
 .subTaskList {
   list-style: none;
   padding: 0;
@@ -174,6 +192,7 @@
   flex-direction: column;
   gap: 0.5rem;
 }
+
 .subTaskList li {
   display: flex;
   align-items: center;
@@ -182,12 +201,16 @@
   padding: 0.25rem;
   border-radius: 4px;
 }
+
 .subTaskList li:hover {
   background-color: var(--color-background);
 }
+
 .subTaskList input[type="checkbox"] {
-  pointer-events: none; /* Make the whole <li> clickable */
+  pointer-events: none;
+  /* Make the whole <li> clickable */
 }
+
 .subTaskList .completed {
   text-decoration: line-through;
   color: var(--color-text-secondary);

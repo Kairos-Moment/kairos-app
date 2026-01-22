@@ -30,7 +30,7 @@ const resetDatabase = async () => {
     console.error("This script should only be run intentionally via the 'npm run reset' command.");
     return;
   }
-    
+
   try {
     console.log("--- Starting Database Reset ---");
     const client = await pool.connect();
@@ -40,8 +40,10 @@ const resetDatabase = async () => {
     console.log("\n-> Dropping all existing tables...");
     await client.query(`
       DROP TABLE IF EXISTS "user_sessions";
+      DROP TABLE IF EXISTS saved_tracks;
       DROP TABLE IF EXISTS focus_sessions;
       DROP TABLE IF EXISTS habit_logs;
+      DROP TABLE IF EXISTS subtasks;
       DROP TABLE IF EXISTS tasks;
       DROP TABLE IF EXISTS habits;
       DROP TABLE IF EXISTS goals;
@@ -92,7 +94,8 @@ const resetDatabase = async () => {
         is_urgent BOOLEAN DEFAULT false,
         is_important BOOLEAN DEFAULT false,
         due_date TIMESTAMP WITH TIME ZONE,
-        status VARCHAR(50) DEFAULT 'pending'
+        status VARCHAR(50) DEFAULT 'pending',
+        completed_at TIMESTAMP WITH TIME ZONE
       );
 
       -- Subtasks Table
@@ -132,6 +135,15 @@ const resetDatabase = async () => {
       WITH (OIDS=FALSE);
       ALTER TABLE "user_sessions" ADD CONSTRAINT "user_sessions_pkey" PRIMARY KEY ("sid") NOT DEFERRABLE INITIALLY IMMEDIATE;
       CREATE INDEX "IDX_user_sessions_expire" ON "user_sessions" ("expire");
+
+      -- Saved Tracks Table (Personal Audio Library)
+      CREATE TABLE saved_tracks (
+        id SERIAL PRIMARY KEY,
+        user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        title VARCHAR(100) NOT NULL,
+        youtube_id VARCHAR(50) NOT NULL,
+        created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+      );
     `);
     console.log("✅ All tables created successfully.");
 

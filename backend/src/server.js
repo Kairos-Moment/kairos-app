@@ -63,17 +63,17 @@ app.use(
     resave: false,
     saveUninitialized: false,
     cookie: {
-      maxAge: 30 * 24 * 60 * 60 * 1000, 
-      
+      maxAge: 30 * 24 * 60 * 60 * 1000,
+
       // --- DYNAMIC SECURITY SETTINGS ---
       // If Production (Render): true (HTTPS)
       // If Development (Local): false (HTTP)
-      secure: isProduction, 
-      
+      secure: isProduction,
+
       // If Production: 'none' (Allows Cross-Site)
       // If Development: 'lax' (Allows Localhost)
       sameSite: isProduction ? 'none' : 'lax',
-      
+
       httpOnly: true
     },
   })
@@ -109,6 +109,7 @@ const taskRoutes = require("./routes/tasks.routes");
 const goalRoutes = require("./routes/goals.routes");
 const habitRoutes = require("./routes/habits.routes");
 const focusSessionRoutes = require("./routes/focus-sessions.routes");
+const savedTracksRoutes = require('./routes/saved-tracks.routes'); // NEW
 const habitLogRoutes = require("./routes/habit-logs.routes");
 const authRoutes = require("./routes/auth.routes.js");
 
@@ -117,6 +118,7 @@ app.use("/api/tasks", taskRoutes);
 app.use("/api/goals", goalRoutes);
 app.use("/api/habits", habitRoutes);
 app.use("/api/focus-sessions", focusSessionRoutes);
+app.use("/api/saved-tracks", savedTracksRoutes); // NEW
 app.use("/api/habit-logs", habitLogRoutes);
 app.use("/api/auth", authRoutes);
 

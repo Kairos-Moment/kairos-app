@@ -7,7 +7,7 @@ const { pool } = require("../config/database.js");
  */
 const createTask = async (req, res) => {
   const client = await pool.connect();
-  
+
   try {
     const userId = req.user.id;
     const {
@@ -31,13 +31,13 @@ const createTask = async (req, res) => {
       RETURNING *;
     `;
     const taskResult = await client.query(taskQuery, [
-      userId, 
-      goal_id || null, 
-      title, 
-      description || '', 
-      is_urgent || false, 
-      is_important || false, 
-      due_date || null, 
+      userId,
+      goal_id || null,
+      title,
+      description || '',
+      is_urgent || false,
+      is_important || false,
+      due_date || null,
       status || 'pending'
     ]);
     const newTask = taskResult.rows[0];
@@ -45,11 +45,11 @@ const createTask = async (req, res) => {
     // 3. Insert Subtasks (if any)
     if (subtasks && Array.isArray(subtasks) && subtasks.length > 0) {
       const subtaskQuery = `INSERT INTO subtasks (task_id, title, is_completed) VALUES ($1, $2, $3)`;
-      
+
       for (const sub of subtasks) {
         if (sub.title && sub.title.trim() !== "") {
           await client.query(subtaskQuery, [
-            newTask.id, 
+            newTask.id,
             sub.title,
             sub.is_completed || false
           ]);
@@ -66,9 +66,9 @@ const createTask = async (req, res) => {
     // you might want to run the SELECT query from updateTask step 5 here as well.
     // For now, attaching the input subtasks is a quick way to keep UI in sync without an extra DB call:
     const responseTask = { ...newTask, subtasks: subtasks || [] };
-    
+
     res.status(201).json(responseTask);
-    
+
   } catch (error) {
     await client.query('ROLLBACK');
     console.error("Error creating task:", error.message);
@@ -103,7 +103,7 @@ const getTasksByUserId = async (req, res) => {
       GROUP BY t.id
       ORDER BY t.due_date ASC;
     `;
-    
+
     const results = await pool.query(query, [userId]);
     res.status(200).json(results.rows);
   } catch (error) {
@@ -117,22 +117,24 @@ const getTasksByUserId = async (req, res) => {
  */
 const updateTask = async (req, res) => {
   const client = await pool.connect();
-  
+
   try {
     const userId = req.user.id;
     const taskId = parseInt(req.params.id);
-    
+
     // Destructure all potential fields
-    const { 
-      title, 
-      description, 
-      is_urgent, 
-      is_important, 
-      due_date, 
-      status, 
-      goal_id, 
+    const {
+      title,
+      description,
+      is_urgent,
+      is_important,
+      due_date,
+      status,
+      goal_id,
       subtasks // The updated list of subtasks
     } = req.body;
+
+    console.log(`[updateTask] ID: ${taskId} | Incoming Status: ${status} | Subtasks: ${subtasks?.length}`);
 
     // 1. Start Transaction
     await client.query('BEGIN');
@@ -140,20 +142,31 @@ const updateTask = async (req, res) => {
     // 2. Update Main Task
     const updateQuery = `
       UPDATE tasks 
-      SET title = $1, description = $2, is_urgent = $3, is_important = $4, due_date = $5, status = $6, goal_id = $7 
+      SET title = $1, 
+          description = $2, 
+          is_urgent = $3, 
+          is_important = $4, 
+          due_date = $5, 
+          status = $6, 
+          goal_id = $7,
+          completed_at = CASE 
+            WHEN $6 = 'completed' AND status != 'completed' THEN CURRENT_TIMESTAMP 
+            WHEN $6 != 'completed' THEN NULL 
+            ELSE completed_at 
+          END
       WHERE id = $8 AND user_id = $9
       RETURNING *;
     `;
-    
+
     const taskResult = await client.query(updateQuery, [
-      title, 
-      description, 
-      is_urgent, 
-      is_important, 
-      due_date, 
-      status, 
+      title,
+      description,
+      is_urgent,
+      is_important,
+      due_date,
+      status,
       goal_id,
-      taskId, 
+      taskId,
       userId,
     ]);
 
@@ -163,23 +176,34 @@ const updateTask = async (req, res) => {
       return res.status(404).json({ message: "Task not found or unauthorized." });
     }
 
-    // 3. Handle Subtasks
-    // Strategy: Wipe all existing subtasks for this task and re-insert the new list.
-    // This effectively handles additions, deletions, and edits simultaneously.
-    
-    await client.query('DELETE FROM subtasks WHERE task_id = $1', [taskId]);
+    // 3. Handle Subtasks (Intelligent Sync)
+    const incomingSubtasks = subtasks || [];
+    const subtasksWithId = incomingSubtasks.filter(st => st.id);
+    const subtasksWithoutId = incomingSubtasks.filter(st => !st.id);
 
-    if (subtasks && Array.isArray(subtasks) && subtasks.length > 0) {
-      const subtaskQuery = `INSERT INTO subtasks (task_id, title, is_completed) VALUES ($1, $2, $3)`;
-      
-      for (const st of subtasks) {
-        if (st.title && st.title.trim() !== "") {
-          await client.query(subtaskQuery, [
-            taskId, 
-            st.title, 
-            st.is_completed || false
-          ]);
-        }
+    // A. Delete subtasks that are no longer present
+    if (subtasksWithId.length > 0) {
+      const idsToKeep = subtasksWithId.map(st => st.id);
+      await client.query('DELETE FROM subtasks WHERE task_id = $1 AND id NOT IN (' + idsToKeep.join(',') + ')', [taskId]);
+    } else {
+      await client.query('DELETE FROM subtasks WHERE task_id = $1', [taskId]);
+    }
+
+    // B. Update existing subtasks
+    for (const st of subtasksWithId) {
+      await client.query(
+        'UPDATE subtasks SET title = $1, is_completed = $2 WHERE id = $3 AND task_id = $4',
+        [st.title, st.is_completed || false, st.id, taskId]
+      );
+    }
+
+    // C. Insert new subtasks
+    for (const st of subtasksWithoutId) {
+      if (st.title && st.title.trim() !== "") {
+        await client.query(
+          'INSERT INTO subtasks (task_id, title, is_completed) VALUES ($1, $2, $3)',
+          [taskId, st.title, st.is_completed || false]
+        );
       }
     }
 
@@ -204,7 +228,7 @@ const updateTask = async (req, res) => {
       WHERE t.id = $1
       GROUP BY t.id;
     `;
-    
+
     const finalResult = await client.query(finalQuery, [taskId]);
     res.status(200).json(finalResult.rows[0]);
 
@@ -245,31 +269,73 @@ const deleteTask = async (req, res) => {
  * Toggles a subtask's completion status.
  */
 const toggleSubtask = async (req, res) => {
+  const client = await pool.connect();
   try {
     const userId = req.user.id;
     const subtaskId = parseInt(req.params.id);
 
-    // Join with tasks to ensure the subtask belongs to a task owned by the user
-    const query = `
-      UPDATE subtasks st
-      SET is_completed = NOT is_completed
-      FROM tasks t
-      WHERE st.task_id = t.id 
-      AND st.id = $1 
-      AND t.user_id = $2
-      RETURNING st.*;
-    `;
-    
-    const results = await pool.query(query, [subtaskId, userId]);
+    await client.query('BEGIN');
 
-    if (results.rows.length === 0) {
+    // 1. Toggle Subtask and get parent task_id
+    const toggleQuery = `
+      UPDATE subtasks
+      SET is_completed = NOT is_completed
+      FROM tasks
+      WHERE subtasks.task_id = tasks.id 
+      AND subtasks.id = $1 
+      AND tasks.user_id = $2
+      RETURNING subtasks.id, subtasks.is_completed, subtasks.task_id;
+    `;
+    const toggleRes = await client.query(toggleQuery, [subtaskId, userId]);
+
+    if (toggleRes.rows.length === 0) {
+      await client.query('ROLLBACK');
       return res.status(404).json({ message: "Subtask not found or unauthorized." });
     }
 
-    res.json(results.rows[0]);
+    const updatedSubtask = toggleRes.rows[0];
+    const taskId = updatedSubtask.task_id;
+
+    // 2. Check overall progress of the parent task
+    const checkQuery = `
+      SELECT 
+        COUNT(*) as total,
+        SUM(CASE WHEN is_completed THEN 1 ELSE 0 END) as completed
+      FROM subtasks
+      WHERE task_id = $1;
+    `;
+    const checkRes = await client.query(checkQuery, [taskId]);
+    const { total, completed } = checkRes.rows[0];
+    const allDone = parseInt(total) > 0 && parseInt(total) === parseInt(completed);
+
+    // 3. Update parent task status based on subtasks
+    if (allDone) {
+      // Auto-Complete
+      await client.query(`
+        UPDATE tasks 
+        SET status = 'completed', 
+            completed_at = COALESCE(completed_at, CURRENT_TIMESTAMP)
+        WHERE id = $1 AND status != 'completed';
+      `, [taskId]);
+    } else {
+      // Auto-Revert if some subtasks were unchecked
+      await client.query(`
+        UPDATE tasks 
+        SET status = 'pending', 
+            completed_at = NULL
+        WHERE id = $1 AND status = 'completed';
+      `, [taskId]);
+    }
+
+    await client.query('COMMIT');
+    res.json(updatedSubtask);
+
   } catch (err) {
+    await client.query('ROLLBACK');
     console.error("Error toggling subtask:", err.message);
     res.status(500).json({ error: err.message });
+  } finally {
+    client.release();
   }
 };
 
@@ -280,15 +346,15 @@ const getTaskById = async (req, res) => {
   try {
     const userId = req.user.id;
     const taskId = parseInt(req.params.id);
-    
+
     // Simple fetch. If you need subtasks here too, use the join query from getTasksByUserId
     const query = `SELECT * FROM tasks WHERE id = $1 AND user_id = $2`;
     const results = await pool.query(query, [taskId, userId]);
-    
+
     if (results.rows.length === 0) {
       return res.status(404).json({ message: "Not found" });
     }
-    
+
     res.json(results.rows[0]);
   } catch (error) {
     res.status(500).json({ error: error.message });

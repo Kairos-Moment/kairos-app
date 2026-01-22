@@ -7,17 +7,20 @@
 
 .timeline {
   position: relative;
-  
+
   /* This pseudo-element creates the vertical timeline spine */
   &::before {
     content: '';
     position: absolute;
-    left: 18px; /* Aligns with the center of the 36px time marker circle */
+    left: 29px;
+    /* Aligns with the center of the 60px time marker circle */
     top: 0;
     bottom: 0;
     width: 2px;
-    background-color: var(--color-border); /* Use our theme's border color */
-    z-index: 0; /* Place it behind the circles */
+    background-color: var(--color-border);
+    /* Use our theme's border color */
+    z-index: 0;
+    /* Place it behind the circles */
   }
 }
 
@@ -35,12 +38,14 @@
   gap: 1.5rem;
   margin-bottom: 1.5rem;
 }
+
 .skeletonCircle {
   width: 36px;
   height: 36px;
   border-radius: 50%;
   background-color: #e0e0e0;
 }
+
 .skeletonCard {
   flex-grow: 1;
   height: 120px;

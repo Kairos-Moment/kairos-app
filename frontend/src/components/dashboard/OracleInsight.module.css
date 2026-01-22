@@ -35,12 +35,14 @@
 }
 
 .urgentHeader {
-  color: #ff453a; /* Bright Red/Orange */
+  color: #ff453a;
+  /* Bright Red/Orange */
   text-shadow: 0 0 5px rgba(255, 69, 58, 0.5);
 }
 
 .urgentTask {
-  color: #ffcccb; /* Light Red text */
+  color: #ffcccb;
+  /* Light Red text */
 }
 
 
@@ -59,11 +61,21 @@
 
 .taskIcon {
   font-size: 1.25rem;
-  color: var(--color-accent); /* Gold icon */
+  color: var(--color-accent);
+  /* Gold icon */
+}
+
+.taskDetails {
+  flex-grow: 1;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
 }
 
 .taskText {
-  flex-grow: 1;
+  /* flex-grow handled by parent justify-content */
+  font-weight: 500;
 }
 
 .taskDue {
@@ -104,6 +116,7 @@
   0% {
     left: -150px;
   }
+
   100% {
     left: 100%;
   }

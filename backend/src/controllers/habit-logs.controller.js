@@ -11,7 +11,7 @@ const createHabitLog = async (req, res) => {
     const { habit_id, completion_date, notes } = req.body;
 
     if (!habit_id || !completion_date) {
-        return res.status(400).json({ message: "habit_id and completion_date are required." });
+      return res.status(400).json({ message: "habit_id and completion_date are required." });
     }
 
     // SECURITY CHECK: Verify that the parent habit belongs to the current user.
@@ -75,7 +75,7 @@ const updateHabitLog = async (req, res) => {
     const { notes } = req.body;
 
     if (typeof notes === 'undefined') {
-        return res.status(400).json({ message: "The 'notes' field is required for an update." });
+      return res.status(400).json({ message: "The 'notes' field is required for an update." });
     }
 
     // SECURITY: Use a subquery to ensure the log being updated belongs to a habit owned by the user.
@@ -124,9 +124,78 @@ const deleteHabitLog = async (req, res) => {
   }
 };
 
+/**
+ * Deletes a habit log for a specific date (default: today), ensuring user ownership.
+ * Useful for "Undo" functionality.
+ */
+const deleteHabitLogByDate = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const habitId = parseInt(req.params.habitId);
+    const date = req.params.date || new Date().toISOString().split('T')[0];
+
+    // SECURITY: Delete only if the habit belongs to the user
+    const query = `
+      DELETE FROM habit_logs
+      WHERE habit_id = $1 
+      AND completion_date = $2
+      AND habit_id IN (SELECT id FROM habits WHERE user_id = $3)
+    `;
+    const results = await pool.query(query, [habitId, date, userId]);
+
+    if (results.rowCount === 0) {
+      return res.status(404).json({ message: "No log found for this date to undo." });
+    }
+
+    res.status(200).json({ message: `Habit log for ${date} undone successfully.` });
+  } catch (error) {
+    console.error("Error undoing habit log:", error);
+    res.status(500).json({ error: "An internal server error occurred." });
+  }
+};
+
+/**
+ * Deletes the most recent log for a given habit.
+ * Useful for undoing progress without knowing the exact date.
+ */
+const deleteLatestHabitLog = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const habitId = parseInt(req.params.habitId);
+
+    // Find and delete the latest log for this habit and user
+    // We use a subquery to find the ID of the latest log (highest date, then highest ID)
+    const deleteQuery = `
+      DELETE FROM habit_logs
+      WHERE id = (
+        SELECT hl.id 
+        FROM habit_logs hl
+        JOIN habits h ON hl.habit_id = h.id
+        WHERE h.id = $1 AND h.user_id = $2
+        ORDER BY hl.completion_date DESC, hl.id DESC
+        LIMIT 1
+      )
+      RETURNING *;
+    `;
+
+    const results = await pool.query(deleteQuery, [habitId, userId]);
+
+    if (results.rowCount === 0) {
+      return res.status(404).json({ message: "No logs found for this habit to undo." });
+    }
+
+    res.status(200).json({ message: "Latest habit log undone successfully.", log: results.rows[0] });
+  } catch (error) {
+    console.error("Error deleting latest habit log:", error);
+    res.status(500).json({ error: "An internal server error occurred." });
+  }
+};
+
 module.exports = {
   createHabitLog,
   getHabitLogsByHabitId,
   updateHabitLog,
   deleteHabitLog,
+  deleteHabitLogByDate,
+  deleteLatestHabitLog,
 };

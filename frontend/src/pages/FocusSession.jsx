@@ -4,10 +4,12 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useLocation } from 'react-router-dom'; // Ensure this is imported
 import apiClient from '../api/axios';
 import styles from './FocusSession.module.css';
-import { 
-  IoPlay, IoPause, IoRefresh, IoMusicalNotes, 
-  IoCheckmarkCircle, IoLogoYoutube 
+import {
+  IoPlay, IoPause, IoRefresh, IoMusicalNotes,
+  IoCheckmarkCircle, IoLogoYoutube, IoSave
 } from 'react-icons/io5';
+import { getSavedTracks, saveTrack, deleteTrack } from '../api/savedTracksAPI';
+import LibraryModal from '../components/focus/LibraryModal';
 
 const GREEK_QUOTES = [
   "We suffer more often in imagination than in reality. — Seneca",
@@ -33,13 +35,17 @@ const FocusSession = () => {
   const [sessionStartTime, setSessionStartTime] = useState(null);
   const [quote] = useState(() => GREEK_QUOTES[Math.floor(Math.random() * GREEK_QUOTES.length)]);
   const [audioUrl, setAudioUrl] = useState('');
-  const [youtubeId, setYoutubeId] = useState(''); 
+  const [youtubeId, setYoutubeId] = useState('');
   const [ytInput, setYtInput] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  // Saved Tracks State
+  const [savedTracks, setSavedTracks] = useState([]);
+  const [isLibraryOpen, setIsLibraryOpen] = useState(false);
+
   // --- REFS ---
   const audioRef = useRef(new Audio());
-  const playerRef = useRef(null); 
+  const playerRef = useRef(null);
 
   // --- 1. SAFE YOUTUBE API LOADING ---
   useEffect(() => {
@@ -119,14 +125,29 @@ const FocusSession = () => {
       }
     };
     loadTasks();
+    loadTasks();
   }, [location.search]);
+
+  // --- 5.1 FETCH SAVED TRACKS ---
+  useEffect(() => {
+    fetchTracks();
+  }, []);
+
+  const fetchTracks = async () => {
+    try {
+      const tracks = await getSavedTracks();
+      setSavedTracks(tracks);
+    } catch (err) {
+      console.error("Failed to load saved tracks", err);
+    }
+  };
 
   // --- 6. BUILT-IN AUDIO ---
   useEffect(() => {
     if (audioUrl && !youtubeId) {
       audioRef.current.src = audioUrl;
       audioRef.current.loop = true;
-      isActive ? audioRef.current.play().catch(() => {}) : audioRef.current.pause();
+      isActive ? audioRef.current.play().catch(() => { }) : audioRef.current.pause();
     } else {
       audioRef.current.pause();
     }
@@ -135,15 +156,51 @@ const FocusSession = () => {
   // --- HANDLERS ---
   const handleYoutubeSubmit = (e) => {
     e.preventDefault();
-    const regExp = /^.*((youtu.be\/)|(v\/)|(\/u\/\w\/)|(embed\/)|(watch\?))\??v?=?([^#&?]*).*/;
-    const match = ytInput.match(regExp);
-    const id = (match && match[7].length === 11) ? match[7] : null;
+    const id = extractYoutubeId(ytInput);
     if (id) {
       setAudioUrl('');
       setYoutubeId(id);
     } else {
       alert("Invalid YouTube Link");
     }
+  };
+
+  const extractYoutubeId = (url) => {
+    const regExp = /^.*((youtu.be\/)|(v\/)|(\/u\/\w\/)|(embed\/)|(watch\?))\??v?=?([^#&?]*).*/;
+    const match = url.match(regExp);
+    return (match && match[7].length === 11) ? match[7] : null;
+  };
+
+  const handleSaveCurrentTrack = async () => {
+    if (!youtubeId) return alert("No YouTube track loaded to save.");
+    const title = prompt("Enter a name for this track:");
+    if (title) {
+      try {
+        await saveTrack(title, youtubeId);
+        fetchTracks();
+        alert("Track saved to library!");
+      } catch (err) {
+        console.error(err);
+        alert("Failed to save track.");
+      }
+    }
+  };
+
+  const handleDeleteTrack = async (id) => {
+    if (window.confirm("Remove from library?")) {
+      try {
+        await deleteTrack(id);
+        setSavedTracks(prev => prev.filter(t => t.id !== id));
+      } catch (err) {
+        console.error(err);
+      }
+    }
+  };
+
+  const loadSavedTrack = (track) => {
+    setYoutubeId(track.youtube_id);
+    setAudioUrl('');
+    setYtInput(`https://youtu.be/${track.youtube_id}`); // Update input for visibility
   };
 
   const handleSessionComplete = async () => {
@@ -187,7 +244,7 @@ const FocusSession = () => {
   };
 
   return (
-    <div className={styles.container}>
+    <div className={`${styles.container} ${isActive ? styles.active : ''}`}>
       <div id="youtube-player" style={{ display: 'none' }}></div>
       <div className={styles.temple}>
         <header className={styles.header}>
@@ -199,9 +256,9 @@ const FocusSession = () => {
           <div className={styles.configRow}>
             <div className={styles.selectorWrapper}>
               <label>Labor:</label>
-              <select 
-                value={selectedTaskId} 
-                onChange={(e) => setSelectedTaskId(e.target.value)} 
+              <select
+                value={selectedTaskId}
+                onChange={(e) => setSelectedTaskId(e.target.value)}
                 className={styles.dropdown}
               >
                 <option value="">-- Choose Task --</option>
@@ -210,20 +267,20 @@ const FocusSession = () => {
             </div>
             <div className={styles.selectorWrapper}>
               <label>Minutes:</label>
-              <input 
-                type="number" value={customMinutes} 
+              <input
+                type="number" value={customMinutes}
                 onChange={(e) => {
-                    const m = parseInt(e.target.value) || 0;
-                    setCustomMinutes(m);
-                    if(!isActive) setTimeLeft(m * 60);
-                }} 
-                className={styles.timeInput} 
+                  const m = parseInt(e.target.value) || 0;
+                  setCustomMinutes(m);
+                  if (!isActive) setTimeLeft(m * 60);
+                }}
+                className={styles.timeInput}
               />
             </div>
           </div>
 
           <div className={styles.timerDisplay}>
-             {Math.floor(timeLeft / 60)}:{(timeLeft % 60).toString().padStart(2, '0')}
+            {Math.floor(timeLeft / 60)}:{(timeLeft % 60).toString().padStart(2, '0')}
           </div>
 
           <div className={styles.actions}>
@@ -241,25 +298,51 @@ const FocusSession = () => {
           <div className={styles.audioSection}>
             <div className={styles.audioTitle}><IoMusicalNotes /> Focus Music</div>
             <form onSubmit={handleYoutubeSubmit} className={styles.ytForm}>
-               <IoLogoYoutube className={styles.ytIcon} />
-               <input 
+              <IoLogoYoutube className={styles.ytIcon} />
+              <input
                 type="text" placeholder="YouTube Link" value={ytInput}
                 onChange={(e) => setYtInput(e.target.value)} className={styles.ytInput}
-               />
-               <button type="submit" className={styles.ytBtn}>Set</button>
+              />
+              <div style={{ display: 'flex', gap: '5px' }}>
+                <button type="submit" className={styles.ytBtn}>Set</button>
+                <button type="button" onClick={handleSaveCurrentTrack} className={styles.saveIconBtn} title="Save to Library">
+                  <IoSave />
+                </button>
+              </div>
             </form>
             <div className={styles.audioButtons}>
-              <button onClick={() => {setYoutubeId(''); setAudioUrl('');}} className={!audioUrl && !youtubeId ? styles.activeAudio : ''}>None</button>
+              <button onClick={() => { setYoutubeId(''); setAudioUrl(''); }} className={!audioUrl && !youtubeId ? styles.activeAudio : ''}>None</button>
               {AMBIENT_TRACKS.map(track => (
-                <button 
-                  key={track.name} 
-                  onClick={() => {setAudioUrl(track.url); setYoutubeId('');}}
+                <button
+                  key={track.name}
+                  onClick={() => { setAudioUrl(track.url); setYoutubeId(''); }}
                   className={audioUrl === track.url ? styles.activeAudio : ''}
                 >
                   {track.name}
                 </button>
               ))}
             </div>
+
+            {/* Library Open Button */}
+            <div style={{ marginTop: '1rem', borderTop: '1px solid rgba(255,255,255,0.1)', paddingTop: '1rem' }}>
+              <button
+                type="button"
+                onClick={() => setIsLibraryOpen(true)}
+                className={styles.secondaryBtn}
+                style={{ width: '100%' }}
+              >
+                <IoMusicalNotes /> Open Personal Library
+              </button>
+            </div>
+
+            {/* Library Modal */}
+            <LibraryModal
+              isOpen={isLibraryOpen}
+              onClose={() => setIsLibraryOpen(false)}
+              savedTracks={savedTracks}
+              onSelectTrack={loadSavedTrack}
+              onDeleteTrack={handleDeleteTrack}
+            />
           </div>
         </div>
       </div>

@@ -4,8 +4,9 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom'; // 1. Import Navigate
 import styles from './Dashboard.module.css';
 import apiClient from '../api/axios';
+import { useNotifications } from '../contexts/NotificationContext';
 
-import { getTasks, deleteTask } from '../api/tasksAPI'; 
+import { getTasks, deleteTask } from '../api/tasksAPI';
 import OracleInsight from '../components/dashboard/OracleInsight';
 import Timeline from '../components/dashboard/Timeline';
 import Modal from '../components/tasks/Modal';
@@ -16,6 +17,7 @@ import { processCommand } from '../utils/speech';
 
 const Dashboard = () => {
   const navigate = useNavigate(); // 2. Initialize Navigate
+  const { addNotification } = useNotifications();
 
   // --- STATE MANAGEMENT ---
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -24,6 +26,7 @@ const Dashboard = () => {
   const [isLoadingInsights, setIsLoadingInsights] = useState(true);
   const [tasks, setTasks] = useState([]);
   const [isLoadingTasks, setIsLoadingTasks] = useState(true);
+  const [oracleSubtitle, setOracleSubtitle] = useState(''); // New Subtitle State
 
   const { isListening, transcript, startListening, stopListening, hasSupport } = useSpeechRecognition();
 
@@ -39,7 +42,7 @@ const Dashboard = () => {
 
   const fetchTasks = useCallback(async () => {
     try {
-      const tasksData = await getTasks(); 
+      const tasksData = await getTasks();
       setTasks(tasksData);
     } catch (error) {
       console.error("Dashboard failed to fetch tasks.", error);
@@ -60,7 +63,12 @@ const Dashboard = () => {
   // --- VOICE COMMAND HANDLER ---
   useEffect(() => {
     if (!isListening && transcript) {
-      processCommand(transcript, insightData);
+      processCommand(transcript, insightData, (text) => {
+        setOracleSubtitle(text);
+        // Clear subtitle after a dynamic delay based on text length (min 3s, max 10s)
+        const displayDuration = Math.max(5000, Math.min(10000, text.length * 60));
+        setTimeout(() => setOracleSubtitle(''), displayDuration);
+      });
     }
   }, [transcript, isListening, insightData]);
 
@@ -77,6 +85,11 @@ const Dashboard = () => {
     setEditingTask(null);
     await fetchTasks();
     await fetchOracleInsights();
+
+    // Notify if Urgent
+    if (savedTask.is_urgent) {
+      addNotification(`Urgent Task Created: ${savedTask.title}`, 'urgent');
+    }
   };
 
   const handleDeleteClick = async (taskId) => {
@@ -88,7 +101,7 @@ const Dashboard = () => {
       } catch (error) {
         console.error("Failed to delete task", error);
         alert("Could not delete task.");
-        fetchTasks(); 
+        fetchTasks();
       }
     }
   };
@@ -130,30 +143,36 @@ const Dashboard = () => {
 
       <div className={styles.timelineSection}>
         <h2 className={styles.timelineHeader}>Today's Timeline</h2>
-        
-        <Timeline 
-          tasks={tasks} 
-          isLoading={isLoadingTasks} 
-          onEdit={handleEditClick} 
-          onDelete={handleDeleteClick} 
+
+        <Timeline
+          tasks={tasks}
+          isLoading={isLoadingTasks}
+          onEdit={handleEditClick}
+          onDelete={handleDeleteClick}
           onTaskUpdate={handleTaskUpdate}
           onStartFocus={handleStartFocus} // 4. Pass the new handler down
         />
-        
+
         <button
           className={styles.floatingActionButton}
-          onClick={openNewTaskModal} 
+          onClick={openNewTaskModal}
         >
           <IoAdd size={32} />
         </button>
       </div>
-      
+
       {isListening && <div className={styles.transcriptOverlay}>Listening...</div>}
 
+      {oracleSubtitle && (
+        <div className={styles.subtitleOverlay}>
+          {oracleSubtitle}
+        </div>
+      )}
+
       {isModalOpen && (
-        <Modal 
-          taskToEdit={editingTask}       
-          onTaskSaved={handleTaskSaved}  
+        <Modal
+          taskToEdit={editingTask}
+          onTaskSaved={handleTaskSaved}
           onClose={handleModalClose}
         />
       )}

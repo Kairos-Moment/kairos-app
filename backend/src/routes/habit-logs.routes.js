@@ -9,7 +9,9 @@ const {
   createHabitLog,
   getHabitLogsByHabitId,
   updateHabitLog,
-  deleteHabitLog
+  deleteHabitLog,
+  deleteHabitLogByDate,
+  deleteLatestHabitLog
 } = require('../controllers/habit-logs.controller');
 
 // Apply security middleware to all routes in this file
@@ -42,5 +44,13 @@ router.patch('/:id', updateHabitLog);
  * @access  Private
  */
 router.delete('/:id', deleteHabitLog);
+
+/**
+ * @route   DELETE /api/habit-logs/habit/:habitId/date/:date
+ * @desc    Undo a habit log for a specific date.
+ * @access  Private
+ */
+router.delete('/habit/:habitId/date/:date', deleteHabitLogByDate);
+router.delete('/habit/:habitId/latest', deleteLatestHabitLog);
 
 module.exports = router;

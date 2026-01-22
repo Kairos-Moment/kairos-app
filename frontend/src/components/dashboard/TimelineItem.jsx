@@ -3,26 +3,28 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import styles from './TimelineItem.module.css';
-import { 
-  IoChevronDown, 
-  IoPencil, 
-  IoTrashOutline, 
-  IoFlame, 
-  IoCheckmarkDoneCircle 
+import {
+  IoChevronDown,
+  IoPencil,
+  IoTrashOutline,
+  IoFlame,
+  IoCheckmarkDoneCircle
 } from 'react-icons/io5';
 import apiClient from '../../api/axios';
+import { useNotifications } from '../../contexts/NotificationContext';
 
-const TimelineItem = ({ 
-  task, 
-  onEdit, 
-  onDelete, 
-  onTaskUpdate, 
-  onStartFocus, 
-  hour, 
-  type 
+const TimelineItem = ({
+  task,
+  onEdit,
+  onDelete,
+  onTaskUpdate,
+  onStartFocus,
+  hour,
+  type
 }) => {
   const { id, title, description, status, subtasks = [] } = task;
   const navigate = useNavigate();
+  const { addNotification } = useNotifications();
 
   const [isOpen, setIsOpen] = useState(false);
   const [localSubTasks, setLocalSubTasks] = useState(subtasks);
@@ -37,7 +39,7 @@ const TimelineItem = ({
    */
   const handleFocusClick = (e) => {
     e.stopPropagation(); // Prevents clicking the card header to toggle the accordion
-    
+
     // If a specific handler was passed from Dashboard, use it, otherwise use direct navigate
     if (onStartFocus) {
       onStartFocus(id);
@@ -46,44 +48,36 @@ const TimelineItem = ({
     }
   };
 
-  /**
-   * Toggles completion for a subtask and auto-updates parent task status.
-   */
+  // Toggles completion for a subtask and auto-updates parent task status
   const handleToggleSubTask = async (subtaskId) => {
-    // 1. Optimistic Update: Update UI before server response
-    const updatedList = localSubTasks.map(sub => 
+    // 1. Optimistic Update
+    const updatedList = localSubTasks.map(sub =>
       sub.id === subtaskId ? { ...sub, is_completed: !sub.is_completed } : sub
     );
     setLocalSubTasks(updatedList);
 
     try {
-      // 2. API Call to toggle subtask
-      await apiClient.patch(`/tasks/subtasks/${subtaskId}/toggle`);
-      
-      // 3. Auto-Complete Logic:
-      const allCompleted = updatedList.every(st => st.is_completed);
+      // 2. API Call (Backend now handles parent status logic)
+      const response = await apiClient.patch(`/tasks/subtasks/${subtaskId}/toggle`);
 
-      // Condition: All subtasks done, but task is still "pending"
-      if (allCompleted && status !== 'completed') {
-        await apiClient.put(`/tasks/${id}`, {
-          ...task,
-          status: 'completed',
-          subtasks: updatedList 
-        });
-        if (onTaskUpdate) onTaskUpdate(); // Refresh Dashboard/Oracle
-      } 
-      // Condition: One subtask unchecked, but task was marked "completed"
-      else if (!allCompleted && status === 'completed') {
-        await apiClient.put(`/tasks/${id}`, {
-          ...task,
-          status: 'pending',
-          subtasks: updatedList
-        });
-        if (onTaskUpdate) onTaskUpdate();
+      // Update with server data
+      const serverSub = response.data;
+      const verifiedList = updatedList.map(s => s.id === subtaskId ? { ...s, is_completed: serverSub.is_completed } : s);
+      setLocalSubTasks(verifiedList);
+
+      // 3. Refresh Dashboard to get potentially updated parent task status
+      if (onTaskUpdate) await onTaskUpdate();
+
+      // 4. Notification (Optional celebration)
+      const allDone = verifiedList.length > 0 && verifiedList.every(st => st.is_completed);
+      if (allDone && status !== 'completed') {
+        addNotification(`Task Completed: ${title}`, 'success');
       }
+
     } catch (err) {
       console.error("Failed to update subtask:", err);
-      setLocalSubTasks(subtasks); // Revert UI on error
+      // Revert on error
+      setLocalSubTasks(subtasks);
     }
   };
 
@@ -97,6 +91,9 @@ const TimelineItem = ({
     onDelete(id);
   };
 
+  // Also handle "Complete" if there's a button for it (but currently it seems auto-complete via subtasks)
+  // We added the notification in the auto-complete logic above.
+
   const typeClass = type ? type.toLowerCase().replace(/\s+/g, '-') : 'default';
 
   return (
@@ -109,7 +106,7 @@ const TimelineItem = ({
 
       {/* Main Task Card */}
       <div className={styles.card}>
-        
+
         {/* Header: Displays Category, Status, and Action Buttons */}
         <div className={styles.cardHeader} onClick={() => setIsOpen(!isOpen)}>
           <div className={styles.headerContent}>
@@ -120,8 +117,8 @@ const TimelineItem = ({
           <div className={styles.headerActions}>
             {/* FOCUS BUTTON: Only show if task isn't already completed */}
             {status !== 'completed' && (
-              <button 
-                className={`${styles.actionBtn} ${styles.focusBtn}`} 
+              <button
+                className={`${styles.actionBtn} ${styles.focusBtn}`}
                 onClick={handleFocusClick}
                 title="Enter Focus Mode"
               >
@@ -129,16 +126,16 @@ const TimelineItem = ({
               </button>
             )}
 
-            <button 
-              className={styles.actionBtn} 
+            <button
+              className={styles.actionBtn}
               onClick={handleEdit}
               title="Edit Task"
             >
               <IoPencil size={16} />
             </button>
-            
-            <button 
-              className={`${styles.actionBtn} ${styles.deleteBtn}`} 
+
+            <button
+              className={`${styles.actionBtn} ${styles.deleteBtn}`}
               onClick={handleDelete}
               title="Delete Task"
             >
@@ -169,18 +166,18 @@ const TimelineItem = ({
             <h4 className={styles.subtaskHeader}>Required Virtues</h4>
             <ul className={styles.subTaskList}>
               {localSubTasks.map(sub => (
-                <li 
-                  key={sub.id} 
+                <li
+                  key={sub.id}
                   onClick={(e) => {
-                    e.stopPropagation(); 
+                    e.stopPropagation();
                     handleToggleSubTask(sub.id);
                   }}
                   className={sub.is_completed ? styles.completedSubItem : ''}
                 >
-                  <input 
-                    type="checkbox" 
-                    checked={sub.is_completed || false} 
-                    readOnly 
+                  <input
+                    type="checkbox"
+                    checked={sub.is_completed || false}
+                    readOnly
                     className={styles.checkbox}
                   />
                   <span>{sub.title}</span>

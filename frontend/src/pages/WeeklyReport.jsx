@@ -7,6 +7,7 @@ import apiClient from '../api/axios';
 // Import Chart Components
 import ProductivityChart from '../components/report/ProductivityChart';
 import DistributionChart from '../components/report/DistributionChart';
+import ActivityLineChart from '../components/report/ActivityLineChart';
 
 // A dedicated component for the loading state skeleton
 const ReportSkeleton = () => (
@@ -33,7 +34,7 @@ const WeeklyReport = () => {
       try {
         setIsLoading(true);
         // Make the live API call to the secure endpoint
-        const response = await apiClient.get('/api/insights/weekly');
+        const response = await apiClient.get('/insights/weekly');
         setReportData(response.data);
       } catch (error) {
         console.error("Failed to fetch weekly report:", error);
@@ -54,12 +55,12 @@ const WeeklyReport = () => {
   if (!reportData) {
     return <div className={styles.emptyState}>Could not load your weekly report.</div>;
   }
-  
+
   return (
     // This page is now wrapped by MainLayout, so we don't need Header or BottomNav
     <div className={styles.reportPage}>
       <h1 className={styles.reportHeader}>Your Weekly Kairos</h1>
-      
+
       <div className={styles.reportCard}>
         <h3>Oracle's Summary</h3>
         <p>{reportData.summary}</p>
@@ -70,7 +71,13 @@ const WeeklyReport = () => {
         <p className={styles.chartDescription}>Tasks completed per day this week.</p>
         <ProductivityChart data={reportData.productivityData} />
       </div>
-      
+
+      <div className={styles.reportCard}>
+        <h3>Activity Detected</h3>
+        <p className={styles.chartDescription}>Your activity flow throughout the week.</p>
+        <ActivityLineChart data={reportData.productivityData} />
+      </div>
+
       <div className={styles.reportCard}>
         <h3>Time Distribution</h3>
         <p className={styles.chartDescription}>Time spent on each goal category (in minutes).</p>
