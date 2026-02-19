@@ -34,10 +34,10 @@ router.get("/login/success", ensureAuthenticated, (req, res) => {
 router.get("/logout", ensureAuthenticated, (req, res, next) => {
   req.logout((err) => {
     if (err) return next(err);
-    
+
     req.session.destroy((err) => {
       if (err) return next(err);
-      
+
       res.clearCookie("connect.sid");
       res.status(200).json({ success: true, message: "Logged out successfully." });
     });
@@ -64,26 +64,33 @@ router.get(
  */
 router.get(
   "/github/callback",
-  passport.authenticate("github", {
-    failureRedirect: `${FRONTEND_URL}/login`,
-    session: true // Ensure Passport knows to use sessions
-  }),
-  (req, res) => {
-    // SUCCESS CALLBACK
-    console.log(`GitHub Login Success. User ID: ${req.user.id}`);
-
-    // --- THE FIX ---
-    // Force the session to be saved to the Remote Database 
-    // BEFORE redirecting the browser.
-    req.session.save((err) => {
+  (req, res, next) => {
+    passport.authenticate("github", (err, user, info) => {
       if (err) {
-        console.error("Session save error:", err);
+        console.error("Passport Authenticate Error:", err);
+        return res.status(500).send(`Authentication Error: ${err.message}`);
+      }
+      if (!user) {
+        console.warn("Passport Authenticate - No User Found:", info);
         return res.redirect(`${FRONTEND_URL}/login`);
       }
-      
-      // Only redirect once we are 100% sure the data is in Postgres
-      res.redirect(`${FRONTEND_URL}/`);
-    });
+      req.logIn(user, (err) => {
+        if (err) {
+          console.error("Passport LogIn Error:", err);
+          return res.status(500).send(`Login Error: ${err.message}`);
+        }
+
+        console.log(`GitHub Login Success. User ID: ${user.id}`);
+
+        req.session.save((err) => {
+          if (err) {
+            console.error("Session save error:", err);
+            return res.redirect(`${FRONTEND_URL}/login`);
+          }
+          res.redirect(`${FRONTEND_URL}/`);
+        });
+      });
+    })(req, res, next);
   }
 );
 

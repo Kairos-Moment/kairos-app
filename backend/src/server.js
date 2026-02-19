@@ -113,6 +113,7 @@ const savedTracksRoutes = require('./routes/saved-tracks.routes'); // NEW
 const habitLogRoutes = require("./routes/habit-logs.routes");
 const authRoutes = require("./routes/auth.routes.js");
 
+app.use("/api/health", require("./routes/health.routes"));
 app.use("/api/insights", insightsRoutes);
 app.use("/api/tasks", taskRoutes);
 app.use("/api/goals", goalRoutes);
