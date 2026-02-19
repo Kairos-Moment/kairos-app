@@ -65,20 +65,36 @@ const FocusSession = () => {
 
   // --- 2. INITIALIZE PLAYER ---
   useEffect(() => {
-    // Check if YT and the Player constructor are available
     if (youtubeId && window.YT && window.YT.Player) {
       try {
         if (playerRef.current && typeof playerRef.current.loadVideoById === 'function') {
-          playerRef.current.cueVideoById(youtubeId);
+          // Use loadVideoById to switch immediately if active
+          if (isActive) {
+            playerRef.current.loadVideoById(youtubeId);
+          } else {
+            playerRef.current.cueVideoById(youtubeId);
+          }
         } else {
           playerRef.current = new window.YT.Player('youtube-player', {
             height: '0',
             width: '0',
             videoId: youtubeId,
-            playerVars: { autoplay: 0, loop: 1, playlist: youtubeId },
+            playerVars: {
+              autoplay: 0,
+              loop: 1,
+              playlist: youtubeId,
+              controls: 0,
+              modestbranding: 1
+            },
             events: {
               onReady: (event) => {
                 if (isActive) event.target.playVideo();
+              },
+              onStateChange: (event) => {
+                // If the video ends (0), and we are still active, restart it
+                if (event.data === window.YT.PlayerState.ENDED && isActive) {
+                  event.target.playVideo();
+                }
               },
               onError: (e) => console.error("YT Player Error", e)
             }
@@ -93,7 +109,11 @@ const FocusSession = () => {
   // --- 3. SYNC PLAY/PAUSE ---
   useEffect(() => {
     if (playerRef.current && typeof playerRef.current.playVideo === 'function') {
-      isActive ? playerRef.current.playVideo() : playerRef.current.pauseVideo();
+      if (isActive) {
+        playerRef.current.playVideo();
+      } else {
+        playerRef.current.pauseVideo();
+      }
     }
   }, [isActive]);
 
@@ -116,7 +136,6 @@ const FocusSession = () => {
         const pending = res.data.filter(t => t.status !== 'completed');
         setTasks(pending);
 
-        // Detect Task ID from URL
         const params = new URLSearchParams(location.search);
         const tid = params.get('taskId');
         if (tid) setSelectedTaskId(tid);
@@ -124,7 +143,6 @@ const FocusSession = () => {
         console.error("Task fetch failed", err);
       }
     };
-    loadTasks();
     loadTasks();
   }, [location.search]);
 
@@ -144,13 +162,34 @@ const FocusSession = () => {
 
   // --- 6. BUILT-IN AUDIO ---
   useEffect(() => {
+    const audio = audioRef.current;
+
+    // Fallback loop logic for ambient tracks
+    const handleEnded = () => {
+      if (isActive) {
+        audio.currentTime = 0;
+        audio.play().catch(() => { });
+      }
+    };
+
     if (audioUrl && !youtubeId) {
-      audioRef.current.src = audioUrl;
-      audioRef.current.loop = true;
-      isActive ? audioRef.current.play().catch(() => { }) : audioRef.current.pause();
+      audio.src = audioUrl;
+      audio.loop = true;
+      audio.addEventListener('ended', handleEnded);
+
+      if (isActive) {
+        audio.play().catch(() => { });
+      } else {
+        audio.pause();
+      }
     } else {
-      audioRef.current.pause();
+      audio.pause();
+      audio.removeEventListener('ended', handleEnded);
     }
+
+    return () => {
+      audio.removeEventListener('ended', handleEnded);
+    };
   }, [audioUrl, isActive, youtubeId]);
 
   // --- HANDLERS ---
