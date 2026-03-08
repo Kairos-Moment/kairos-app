@@ -32,6 +32,7 @@
 - **Backend**: Node.js, Express, Passport.js (GitHub OAuth).
 - **Database**: PostgreSQL (Persistence for users, habits, logs, and tasks).
 - **Hosting**: Render (Web Service + Managed PostgreSQL).
+- **Mobile**: https://github.com/Kairos-Moment/kairos-mobile
 
 ---
 
@@ -78,9 +79,4 @@
 ### 4. Voice Commands Not Working
 - **Fix**: Ensure you are using a supported browser (Chrome is recommended) and have granted microphone permissions to the site. Voice commands require an active internet connection for the Web Speech API.
 
----
 
-## 🪴 Future Roadmap
-- [ ] **Garden Evolution**: Visualizing progress through an actual growing digital garden.
-- [ ] **React Native Mobile Version**: Taking the sanctuary on the go.
-- [ ] **AI Oracle**: Deeper behavioral insights using modern LLM integrations.
