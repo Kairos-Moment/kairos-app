@@ -42,6 +42,7 @@ const FocusSession = () => {
   // Saved Tracks State
   const [savedTracks, setSavedTracks] = useState([]);
   const [isLibraryOpen, setIsLibraryOpen] = useState(false);
+  const [encapsulationMode, setEncapsulationMode] = useState(false);
 
   // --- REFS ---
   const audioRef = useRef(new Audio());
@@ -336,45 +337,88 @@ const FocusSession = () => {
 
           <div className={styles.audioSection}>
             <div className={styles.audioTitle}><IoMusicalNotes /> Focus Music</div>
-            <form onSubmit={handleYoutubeSubmit} className={styles.ytForm}>
-              <IoLogoYoutube className={styles.ytIcon} />
-              <input
-                type="text" placeholder="YouTube Link" value={ytInput}
-                onChange={(e) => setYtInput(e.target.value)} className={styles.ytInput}
-              />
-              <div style={{ display: 'flex', gap: '5px' }}>
-                <button type="submit" className={styles.ytBtn}>Set</button>
-                <button type="button" onClick={handleSaveCurrentTrack} className={styles.saveIconBtn} title="Save to Library">
-                  <IoSave />
-                </button>
-              </div>
-            </form>
-            <div className={styles.audioButtons}>
-              <button onClick={() => { setYoutubeId(''); setAudioUrl(''); }} className={!audioUrl && !youtubeId ? styles.activeAudio : ''}>None</button>
-              {AMBIENT_TRACKS.map(track => (
-                <button
-                  key={track.name}
-                  onClick={() => { setAudioUrl(track.url); setYoutubeId(''); }}
-                  className={audioUrl === track.url ? styles.activeAudio : ''}
-                >
-                  {track.name}
-                </button>
-              ))}
-            </div>
 
-            {/* Library Open Button */}
-            <div style={{ marginTop: '1rem', borderTop: '1px solid rgba(255,255,255,0.1)', paddingTop: '1rem' }}>
+            {/* Encapsulation Mode Toggle */}
+            <div className={styles.encapsulationRow}>
+              <span className={styles.encapsulationLabel}>Encapsulation Mode</span>
               <button
                 type="button"
-                onClick={() => setIsLibraryOpen(true)}
-                className={styles.secondaryBtn}
-                style={{ width: '100%' }}
+                className={`${styles.toggleSwitch} ${encapsulationMode ? styles.toggleOn : ''}`}
+                onClick={() => {
+                  setEncapsulationMode(prev => !prev);
+                  setYoutubeId('');
+                  setAudioUrl('');
+                  setYtInput('');
+                }}
+                aria-pressed={encapsulationMode}
+                aria-label="Toggle Encapsulation Mode"
               >
-                <IoMusicalNotes /> Open Personal Library
+                <span className={styles.toggleThumb} />
               </button>
+              <span className={styles.encapsulationHint}>
+                {encapsulationMode ? 'Offline Playlist' : 'YouTube Link'}
+              </span>
             </div>
 
-            {/* Library Modal */}
+            {!encapsulationMode ? (
+              /* YouTube Mode */
+              <>
+                <form onSubmit={handleYoutubeSubmit} className={styles.ytForm}>
+                  <IoLogoYoutube className={styles.ytIcon} />
+                  <input
+                    type="text" placeholder="YouTube Link" value={ytInput}
+                    onChange={(e) => setYtInput(e.target.value)} className={styles.ytInput}
+                  />
+                  <div style={{ display: 'flex', gap: '5px' }}>
+                    <button type="submit" className={styles.ytBtn}>Set</button>
+                    <button type="button" onClick={handleSaveCurrentTrack} className={styles.saveIconBtn} title="Save to Library">
+                      <IoSave />
+                    </button>
+                  </div>
+                </form>
+                <div className={styles.audioButtons}>
+                  <button onClick={() => { setYoutubeId(''); setAudioUrl(''); }} className={!audioUrl && !youtubeId ? styles.activeAudio : ''}>None</button>
+                  {AMBIENT_TRACKS.map(track => (
+                    <button
+                      key={track.name}
+                      onClick={() => { setAudioUrl(track.url); setYoutubeId(''); }}
+                      className={audioUrl === track.url ? styles.activeAudio : ''}
+                    >
+                      {track.name}
+                    </button>
+                  ))}
+                </div>
+              </>
+            ) : (
+              /* Encapsulation Mode — Offline Playlist */
+              <div className={styles.playlistPanel}>
+                {youtubeId && (
+                  <div className={styles.nowPlaying}>
+                    <IoMusicalNotes className={styles.nowPlayingIcon} />
+                    <span>Now playing: {savedTracks.find(t => t.youtube_id === youtubeId)?.title || 'Track'}</span>
+                  </div>
+                )}
+                {savedTracks.length === 0 ? (
+                  <p className={styles.emptyPlaylist}>No saved tracks yet. Add some via YouTube mode first.</p>
+                ) : (
+                  <ul className={styles.playlistList}>
+                    {savedTracks.map(track => (
+                      <li
+                        key={track.id}
+                        className={`${styles.playlistItem} ${youtubeId === track.youtube_id ? styles.activeTrack : ''}`}
+                        onClick={() => loadSavedTrack(track)}
+                      >
+                        <IoMusicalNotes className={styles.playlistIcon} />
+                        <span className={styles.playlistTitle}>{track.title}</span>
+                        {youtubeId === track.youtube_id && <span className={styles.playingBadge}>▶</span>}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            )}
+
+            {/* Library Modal (still accessible from YouTube mode via save) */}
             <LibraryModal
               isOpen={isLibraryOpen}
               onClose={() => setIsLibraryOpen(false)}
