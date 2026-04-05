@@ -6,7 +6,7 @@ import apiClient from '../api/axios';
 import styles from './FocusSession.module.css';
 import {
   IoPlay, IoPause, IoRefresh, IoMusicalNotes,
-  IoCheckmarkCircle, IoLogoYoutube, IoSave
+  IoCheckmarkCircle, IoLogoYoutube, IoSave, IoTrash
 } from 'react-icons/io5';
 import { getSavedTracks, saveTrack, saveAudioFile, deleteTrack } from '../api/savedTracksAPI';
 import LibraryModal from '../components/focus/LibraryModal';
@@ -478,6 +478,13 @@ const FocusSession = () => {
                         <IoMusicalNotes className={styles.playlistIcon} />
                         <span className={styles.playlistTitle}>{track.title}</span>
                         {offlineTrackId === track.id && <span className={styles.playingBadge}>▶</span>}
+                        <button
+                          className={styles.deleteTrackBtn}
+                          onClick={(e) => { e.stopPropagation(); handleDeleteTrack(track.id); }}
+                          title="Remove track"
+                        >
+                          <IoTrash />
+                        </button>
                       </li>
                     ))}
                   </ul>
