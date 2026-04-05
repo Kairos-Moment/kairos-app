@@ -44,6 +44,7 @@ app.use(
 );
 
 app.use(express.json());
+app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 
 // Proxy Configuration
 // Only trust the proxy if we are actually behind one (Production)

@@ -8,7 +8,7 @@ import {
   IoPlay, IoPause, IoRefresh, IoMusicalNotes,
   IoCheckmarkCircle, IoLogoYoutube, IoSave
 } from 'react-icons/io5';
-import { getSavedTracks, saveTrack, deleteTrack } from '../api/savedTracksAPI';
+import { getSavedTracks, saveTrack, saveAudioFile, deleteTrack } from '../api/savedTracksAPI';
 import LibraryModal from '../components/focus/LibraryModal';
 
 const GREEK_QUOTES = [
@@ -43,9 +43,11 @@ const FocusSession = () => {
   const [savedTracks, setSavedTracks] = useState([]);
   const [isLibraryOpen, setIsLibraryOpen] = useState(false);
   const [encapsulationMode, setEncapsulationMode] = useState(false);
+  const [offlineTrackId, setOfflineTrackId] = useState(null); // active offline track id
 
   // --- REFS ---
   const audioRef = useRef(new Audio());
+  const offlineAudioRef = useRef(new Audio());
   const playerRef = useRef(null);
 
   // --- 1. SAFE YOUTUBE API LOADING ---
@@ -165,7 +167,6 @@ const FocusSession = () => {
   useEffect(() => {
     const audio = audioRef.current;
 
-    // Fallback loop logic for ambient tracks
     const handleEnded = () => {
       if (isActive) {
         audio.currentTime = 0;
@@ -177,7 +178,6 @@ const FocusSession = () => {
       audio.src = audioUrl;
       audio.loop = true;
       audio.addEventListener('ended', handleEnded);
-
       if (isActive) {
         audio.play().catch(() => { });
       } else {
@@ -192,6 +192,29 @@ const FocusSession = () => {
       audio.removeEventListener('ended', handleEnded);
     };
   }, [audioUrl, isActive, youtubeId]);
+
+  // --- 7. OFFLINE AUDIO (Encapsulation Mode) ---
+  useEffect(() => {
+    const audio = offlineAudioRef.current;
+    if (!offlineTrackId) {
+      audio.pause();
+      return;
+    }
+    const track = savedTracks.find(t => t.id === offlineTrackId);
+    if (!track?.file_path) {
+      audio.pause();
+      return;
+    }
+    const backendBase = import.meta.env.VITE_API_URL?.replace('/api', '') || 'http://localhost:5001';
+    audio.src = `${backendBase}${track.file_path}`;
+    audio.loop = true;
+    if (isActive) {
+      audio.play().catch(() => { });
+    } else {
+      audio.pause();
+    }
+    return () => { audio.pause(); };
+  }, [offlineTrackId, isActive, savedTracks]);
 
   // --- HANDLERS ---
   const handleYoutubeSubmit = (e) => {
@@ -238,15 +261,43 @@ const FocusSession = () => {
   };
 
   const loadSavedTrack = (track) => {
-    setYoutubeId(track.youtube_id);
-    setAudioUrl('');
-    setYtInput(`https://youtu.be/${track.youtube_id}`); // Update input for visibility
+    if (track.file_path) {
+      // Offline track — play via offlineAudioRef
+      offlineAudioRef.current.pause();
+      setOfflineTrackId(track.id);
+      setYoutubeId('');
+      setAudioUrl('');
+      setYtInput('');
+    } else {
+      // YouTube track
+      setOfflineTrackId(null);
+      offlineAudioRef.current.pause();
+      setYoutubeId(track.youtube_id);
+      setAudioUrl('');
+      setYtInput(`https://youtu.be/${track.youtube_id}`);
+    }
+  };
+
+  const handleUploadTrack = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const title = prompt(`Name this track (${file.name}):`);
+    if (!title) return;
+    try {
+      await saveAudioFile(title, file);
+      await fetchTracks();
+    } catch (err) {
+      console.error(err);
+      alert("Failed to upload track.");
+    }
+    e.target.value = '';
   };
 
   const handleSessionComplete = async () => {
     setIsActive(false);
     if (playerRef.current?.pauseVideo) playerRef.current.pauseVideo();
     if (audioRef.current) audioRef.current.pause();
+    if (offlineAudioRef.current) offlineAudioRef.current.pause();
 
     if (!selectedTaskId || !sessionStartTime) {
       resetTimer();
@@ -275,6 +326,7 @@ const FocusSession = () => {
     setTimeLeft(customMinutes * 60);
     setSessionStartTime(null);
     if (playerRef.current?.stopVideo) playerRef.current.stopVideo();
+    if (offlineAudioRef.current) offlineAudioRef.current.pause();
   };
 
   const toggleTimer = () => {
@@ -392,25 +444,34 @@ const FocusSession = () => {
             ) : (
               /* Encapsulation Mode — Offline Playlist */
               <div className={styles.playlistPanel}>
-                {youtubeId && (
+                <label className={styles.uploadBtn} title="Upload audio file">
+                  ＋ Add Audio File
+                  <input
+                    type="file"
+                    accept="audio/*"
+                    style={{ display: 'none' }}
+                    onChange={handleUploadTrack}
+                  />
+                </label>
+                {offlineTrackId && (
                   <div className={styles.nowPlaying}>
                     <IoMusicalNotes className={styles.nowPlayingIcon} />
-                    <span>Now playing: {savedTracks.find(t => t.youtube_id === youtubeId)?.title || 'Track'}</span>
+                    <span>Now playing: {savedTracks.find(t => t.id === offlineTrackId)?.title || 'Track'}</span>
                   </div>
                 )}
-                {savedTracks.length === 0 ? (
-                  <p className={styles.emptyPlaylist}>No saved tracks yet. Add some via YouTube mode first.</p>
+                {savedTracks.filter(t => t.file_path).length === 0 ? (
+                  <p className={styles.emptyPlaylist}>No offline tracks yet. Upload an audio file above.</p>
                 ) : (
                   <ul className={styles.playlistList}>
-                    {savedTracks.map(track => (
+                    {savedTracks.filter(t => t.file_path).map(track => (
                       <li
                         key={track.id}
-                        className={`${styles.playlistItem} ${youtubeId === track.youtube_id ? styles.activeTrack : ''}`}
+                        className={`${styles.playlistItem} ${offlineTrackId === track.id ? styles.activeTrack : ''}`}
                         onClick={() => loadSavedTrack(track)}
                       >
                         <IoMusicalNotes className={styles.playlistIcon} />
                         <span className={styles.playlistTitle}>{track.title}</span>
-                        {youtubeId === track.youtube_id && <span className={styles.playingBadge}>▶</span>}
+                        {offlineTrackId === track.id && <span className={styles.playingBadge}>▶</span>}
                       </li>
                     ))}
                   </ul>

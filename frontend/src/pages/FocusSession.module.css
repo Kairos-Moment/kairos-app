@@ -501,3 +501,26 @@
   color: #fbbf24;
   flex-shrink: 0;
 }
+
+/* Upload button in Encapsulation Mode */
+.uploadBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  cursor: pointer;
+  background: rgba(251, 191, 36, 0.12);
+  border: 1px dashed rgba(251, 191, 36, 0.4);
+  color: #fbbf24;
+  border-radius: 8px;
+  padding: 0.5rem 1rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  margin-bottom: 0.75rem;
+  transition: background 0.2s;
+  width: 100%;
+  justify-content: center;
+}
+
+.uploadBtn:hover {
+  background: rgba(251, 191, 36, 0.2);
+}
