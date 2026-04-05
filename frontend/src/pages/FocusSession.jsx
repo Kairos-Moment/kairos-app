@@ -10,6 +10,7 @@ import {
 } from 'react-icons/io5';
 import { getSavedTracks, saveTrack, saveAudioFile, deleteTrack } from '../api/savedTracksAPI';
 import LibraryModal from '../components/focus/LibraryModal';
+import { storeAudioBlob, getAudioBlobUrl, removeAudioBlob } from '../utils/offlineAudioDB';
 
 const GREEK_QUOTES = [
   "We suffer more often in imagination than in reality. — Seneca",
@@ -200,21 +201,19 @@ const FocusSession = () => {
       audio.pause();
       return;
     }
-    const track = savedTracks.find(t => t.id === offlineTrackId);
-    if (!track?.file_path) {
+    let blobUrl = null;
+    getAudioBlobUrl(offlineTrackId).then((url) => {
+      if (!url) return;
+      blobUrl = url;
+      audio.src = url;
+      audio.loop = true;
+      if (isActive) audio.play().catch(() => {});
+    });
+    return () => {
       audio.pause();
-      return;
-    }
-    const backendBase = import.meta.env.VITE_API_URL?.replace('/api', '') || 'http://localhost:5001';
-    audio.src = `${backendBase}${track.file_path}`;
-    audio.loop = true;
-    if (isActive) {
-      audio.play().catch(() => { });
-    } else {
-      audio.pause();
-    }
-    return () => { audio.pause(); };
-  }, [offlineTrackId, isActive, savedTracks]);
+      if (blobUrl) URL.revokeObjectURL(blobUrl);
+    };
+  }, [offlineTrackId, isActive]);
 
   // --- HANDLERS ---
   const handleYoutubeSubmit = (e) => {
@@ -253,6 +252,11 @@ const FocusSession = () => {
     if (window.confirm("Remove from library?")) {
       try {
         await deleteTrack(id);
+        await removeAudioBlob(id);
+        if (offlineTrackId === id) {
+          setOfflineTrackId(null);
+          offlineAudioRef.current.pause();
+        }
         setSavedTracks(prev => prev.filter(t => t.id !== id));
       } catch (err) {
         console.error(err);
@@ -284,7 +288,9 @@ const FocusSession = () => {
     const title = prompt(`Name this track (${file.name}):`);
     if (!title) return;
     try {
-      await saveAudioFile(title, file);
+      const saved = await saveAudioFile(title, file);
+      // Store the raw file blob locally so playback works offline
+      await storeAudioBlob(saved.id, file);
       await fetchTracks();
     } catch (err) {
       console.error(err);
