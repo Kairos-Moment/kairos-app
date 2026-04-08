@@ -450,15 +450,26 @@ const FocusSession = () => {
             ) : (
               /* Encapsulation Mode — Offline Playlist */
               <div className={styles.playlistPanel}>
-                <label className={styles.uploadBtn} title="Upload audio file">
-                  ＋ Add Audio File
-                  <input
-                    type="file"
-                    accept="audio/*"
-                    style={{ display: 'none' }}
-                    onChange={handleUploadTrack}
-                  />
-                </label>
+                <div className={styles.playlistToolbar}>
+                  <label className={styles.uploadBtn} title="Upload audio file">
+                    ＋ Add Audio File
+                    <input
+                      type="file"
+                      accept="audio/*"
+                      style={{ display: 'none' }}
+                      onChange={handleUploadTrack}
+                    />
+                  </label>
+                  {offlineTrackId && (
+                    <button
+                      className={styles.stopOfflineBtn}
+                      onClick={() => { offlineAudioRef.current.pause(); setOfflineTrackId(null); }}
+                      title="Stop offline audio"
+                    >
+                      ■ Stop
+                    </button>
+                  )}
+                </div>
                 {offlineTrackId && (
                   <div className={styles.nowPlaying}>
                     <IoMusicalNotes className={styles.nowPlayingIcon} />
