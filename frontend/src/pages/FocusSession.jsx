@@ -113,13 +113,13 @@ const FocusSession = () => {
   // --- 3. SYNC PLAY/PAUSE ---
   useEffect(() => {
     if (playerRef.current && typeof playerRef.current.playVideo === 'function') {
-      if (isActive) {
+      if (isActive && !encapsulationMode) {
         playerRef.current.playVideo();
       } else {
         playerRef.current.pauseVideo();
       }
     }
-  }, [isActive]);
+  }, [isActive, encapsulationMode]);
 
   // --- 4. TIMER LOGIC ---
   useEffect(() => {
@@ -403,10 +403,18 @@ const FocusSession = () => {
                 type="button"
                 className={`${styles.toggleSwitch} ${encapsulationMode ? styles.toggleOn : ''}`}
                 onClick={() => {
-                  setEncapsulationMode(prev => !prev);
-                  setYoutubeId('');
-                  setAudioUrl('');
-                  setYtInput('');
+                  const next = !encapsulationMode;
+                  setEncapsulationMode(next);
+                  if (next) {
+                    // Entering Encapsulation Mode — pause YouTube and ambient audio, keep the link intact
+                    if (playerRef.current?.pauseVideo) playerRef.current.pauseVideo();
+                    audioRef.current.pause();
+                    setAudioUrl('');
+                  } else {
+                    // Leaving Encapsulation Mode — stop offline audio
+                    offlineAudioRef.current.pause();
+                    setOfflineTrackId(null);
+                  }
                 }}
                 aria-pressed={encapsulationMode}
                 aria-label="Toggle Encapsulation Mode"
