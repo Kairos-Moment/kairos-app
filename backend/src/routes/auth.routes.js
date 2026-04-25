@@ -132,7 +132,17 @@ router.post("/github/mobile/token", async (req, res) => {
 });
 
 
-// Uses a separate GitHub OAuth app with the mobile deep link as callback.
+// Temporary debug endpoint — remove after fixing auth
+router.get("/github/mobile/debug", async (req, res) => {
+  res.json({
+    client_id: process.env.GITHUB_CLIENT_ID_MOBILE ? '✅ set' : '❌ missing',
+    client_secret: process.env.GITHUB_CLIENT_SECRET_MOBILE ? '✅ set' : '❌ missing',
+    callback_url: process.env.GITHUB_CALLBACK_URL_MOBILE || '❌ missing',
+    mobile_redirect: process.env.MOBILE_REDIRECT_URI || '❌ missing',
+  });
+});
+
+
 
 router.get("/github/mobile", (req, res) => {
   const { redirect_uri } = req.query;
