@@ -142,6 +142,27 @@ router.get("/github/mobile/debug", async (req, res) => {
   });
 });
 
+// Debug token exchange — pass ?code=TEST to see raw GitHub response
+router.get("/github/mobile/debug-token", async (req, res) => {
+  const { code } = req.query;
+  if (!code) return res.json({ hint: 'Pass ?code=any_value to test the exchange' });
+
+  try {
+    const tokenRes = await axios.post(
+      'https://github.com/login/oauth/access_token',
+      {
+        client_id: process.env.GITHUB_CLIENT_ID_MOBILE,
+        client_secret: process.env.GITHUB_CLIENT_SECRET_MOBILE,
+        code,
+      },
+      { headers: { Accept: 'application/json' }, timeout: 10000 }
+    );
+    res.json({ github_response: tokenRes.data });
+  } catch (err) {
+    res.json({ error: err.message });
+  }
+});
+
 
 
 router.get("/github/mobile", (req, res) => {
