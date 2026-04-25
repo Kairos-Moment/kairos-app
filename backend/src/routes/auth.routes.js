@@ -169,11 +169,11 @@ router.get("/github/mobile", (req, res) => {
   const { redirect_uri } = req.query;
   const mobileRedirectUri = redirect_uri || process.env.MOBILE_REDIRECT_URI;
 
-  // Encode the mobile redirect URI in the state param so it survives the OAuth round-trip
   const state = Buffer.from(JSON.stringify({ mobileRedirectUri })).toString('base64');
 
   const params = new URLSearchParams({
     client_id: process.env.GITHUB_CLIENT_ID_MOBILE,
+    redirect_uri: mobileRedirectUri,
     scope: 'read:user',
     state,
   });
