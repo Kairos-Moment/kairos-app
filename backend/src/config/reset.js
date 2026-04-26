@@ -141,7 +141,8 @@ const resetDatabase = async () => {
         id SERIAL PRIMARY KEY,
         user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
         title VARCHAR(100) NOT NULL,
-        youtube_id VARCHAR(50) NOT NULL,
+        youtube_id VARCHAR(50),
+        file_path TEXT,
         created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
       );
     `);
