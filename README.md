@@ -20,6 +20,8 @@
 ### ⏲️ Focus Space
 - **Immersion**: A dedicated session timer to help you enter a state of deep work.
 - **Productivity Tracking**: Every minute spent in focus is automatically logged and visualized in your reports.
+- **🎵 Navidrome Music Streaming**: Stream your personal music library during focus sessions via Navidrome.
+- **Multi-Source Playback**: YouTube, Navidrome, custom uploads, and ambient sounds—all in one unified player.
 
 ### 🎤 Voice Integration
 - **Hands-Free Logging**: Use the integrated **Web Speech API** to log habits via voice commands. Just tell the Oracle "Log reading habit" and watch your garden grow.
@@ -31,6 +33,7 @@
 - **Frontend**: React (Vite), CSS Modules, `date-fns` for period logic.
 - **Backend**: Node.js, Express, Passport.js (GitHub OAuth).
 - **Database**: PostgreSQL (Persistence for users, habits, logs, and tasks).
+- **Music Streaming**: Navidrome (Self-hosted music server with Docker).
 - **Hosting**: Render (Web Service + Managed PostgreSQL).
 - **Mobile**: https://github.com/Kairos-Moment/kairos-mobile
 
@@ -38,7 +41,23 @@
 
 ## 🚀 Getting Started
 
+### Music Player Setup (New!)
+
+To use Navidrome music streaming:
+
+```bash
+# Quick setup (Linux/Mac)
+chmod +x setup-navidrome.sh
+./setup-navidrome.sh
+
+# Quick setup (Windows)
+setup-navidrome.bat
+```
+
+For detailed setup, see [NAVIDROME_SETUP.md](./NAVIDROME_SETUP.md)
+
 ### Local Development
+
 1. **Clone the repo.**
 2. **Environment Setup**: Create a `.env` file in the root with:
    ```env
@@ -48,13 +67,22 @@
    GITHUB_CALLBACK_URL=http://localhost:5001/api/auth/github/callback
    CLIENT_URL=http://localhost:5173
    SESSION_SECRET=your_secret
+   
+   # Navidrome (optional, defaults to localhost:4533)
+   NAVIDROME_URL=http://localhost:4533
+   NAVIDROME_USERNAME=admin
+   NAVIDROME_PASSWORD=admin
    ```
 3. **Install Dependencies**:
    ```bash
    npm install
    npm run install-all  # (If using a root script) or cd backend && npm install, cd frontend && npm install
    ```
-4. **Run**:
+4. **Start Navidrome** (optional but recommended):
+   ```bash
+   docker-compose up -d
+   ```
+5. **Run**:
    ```bash
    npm run dev
    ```

@@ -1,0 +1,30 @@
+services:
+  navidrome:
+    image: deluan/navidrome:latest
+    ports:
+      - "4533:4533"
+    environment:
+      ND_LOGFORMAT: text
+      ND_LOGLEVEL: info
+      ND_BASEURL: ""
+      ND_DATAFOLDER: /data
+      ND_MUSICFOLDER: /music
+    volumes:
+      - navidrome_data:/data
+      - ./music:/music:ro
+    restart: unless-stopped
+    networks:
+      - kairos-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:4533/rest/ping?u=${NAVIDROME_USERNAME}&p=${NAVIDROME_PASSWORD}&v=1.16.1&c=Kairos&f=json"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+networks:
+  kairos-network:
+    driver: bridge
+
+volumes:
+  navidrome_data:

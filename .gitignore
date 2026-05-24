@@ -3,3 +3,16 @@ node_modules
 .vscode
 backend/uploads/*
 !backend/uploads/.gitkeep
+*.sh
+*.bat
+MIGRATION_IMPLEMENTATION.md
+MIGRATION_SUMMARY.md
+NAVIDROME_SETUP.md
+QUICK_REFERENCE.md
+DEV_PROD_SETUP.md
+music
+headers-5173.txt
+headers.txt
+navidrome-container-logs.txt
+temp.bin
+temp-5173.bin

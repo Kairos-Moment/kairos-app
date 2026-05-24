@@ -31,12 +31,20 @@ console.log("---------------------");
 
 // CORS Configuration
 // We allow BOTH the Production URL and the Localhost URL
+const allowedOrigins = [
+  "https://kairos-app.onrender.com", // Production Frontend
+  "http://localhost:5173",           // Local Frontend (Vite default)
+  "http://localhost:5174"            // Alternate local dev port
+];
+
 app.use(
   cors({
-    origin: [
-      "https://kairos-app.onrender.com", // Production Frontend
-      "http://localhost:5173"            // Local Frontend (Vite default)
-    ],
+    origin: (origin, callback) => {
+      if (!origin) return callback(null, true);
+      if (allowedOrigins.includes(origin)) return callback(null, true);
+      if (!isProduction && origin.startsWith('http://localhost:')) return callback(null, true);
+      callback(new Error('Not allowed by CORS'));
+    },
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
     allowedHeaders: ['Content-Type', 'Authorization']
@@ -111,6 +119,7 @@ const goalRoutes = require("./routes/goals.routes");
 const habitRoutes = require("./routes/habits.routes");
 const focusSessionRoutes = require("./routes/focus-sessions.routes");
 const savedTracksRoutes = require('./routes/saved-tracks.routes'); // NEW
+const navidromeRoutes = require('./routes/navidrome.routes'); // NEW
 const habitLogRoutes = require("./routes/habit-logs.routes");
 const authRoutes = require("./routes/auth.routes.js");
 
@@ -121,6 +130,7 @@ app.use("/api/goals", goalRoutes);
 app.use("/api/habits", habitRoutes);
 app.use("/api/focus-sessions", focusSessionRoutes);
 app.use("/api/saved-tracks", savedTracksRoutes); // NEW
+app.use("/api/navidrome", navidromeRoutes); // NEW
 app.use("/api/habit-logs", habitLogRoutes);
 app.use("/api/auth", authRoutes);
 

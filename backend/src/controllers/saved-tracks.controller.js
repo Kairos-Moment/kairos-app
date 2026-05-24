@@ -6,24 +6,46 @@ const path = require('path');
 const createTrack = async (req, res) => {
     try {
         const userId = req.user.id;
-        const { title, youtube_id } = req.body;
+        const { title, youtube_id, navidrome_id, source_type = 'youtube', metadata } = req.body;
         const file = req.file; // set by multer if uploading
 
         if (!title) {
             return res.status(400).json({ message: "Title is required." });
         }
-        if (!youtube_id && !file) {
-            return res.status(400).json({ message: "A YouTube ID or audio file is required." });
+
+        // Determine source type and validate
+        let finalSourceType = source_type;
+        let finalYoutubeId = null;
+        let finalNavidromeId = null;
+        let filePath = null;
+
+        if (file) {
+            finalSourceType = 'upload';
+            filePath = `/uploads/${file.filename}`;
+        } else if (navidrome_id) {
+            finalSourceType = 'navidrome';
+            finalNavidromeId = navidrome_id;
+        } else if (youtube_id) {
+            finalSourceType = 'youtube';
+            finalYoutubeId = youtube_id;
+        } else {
+            return res.status(400).json({ message: "A YouTube ID, Navidrome ID, or audio file is required." });
         }
 
-        const filePath = file ? `/uploads/${file.filename}` : null;
-
         const query = `
-            INSERT INTO saved_tracks (user_id, title, youtube_id, file_path)
-            VALUES ($1, $2, $3, $4)
+            INSERT INTO saved_tracks (user_id, title, youtube_id, navidrome_id, file_path, source_type, metadata)
+            VALUES ($1, $2, $3, $4, $5, $6, $7)
             RETURNING *;
         `;
-        const results = await pool.query(query, [userId, title, youtube_id || null, filePath]);
+        const results = await pool.query(query, [
+            userId,
+            title,
+            finalYoutubeId,
+            finalNavidromeId,
+            filePath,
+            finalSourceType,
+            metadata ? JSON.stringify(metadata) : null
+        ]);
         res.status(201).json(results.rows[0]);
     } catch (error) {
         console.error("Error saving track:", error);

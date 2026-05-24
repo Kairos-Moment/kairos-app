@@ -1,15 +1,19 @@
 // frontend/src/pages/FocusSession.jsx
 
-import React, { useState, useEffect, useRef } from 'react';
-import { useLocation } from 'react-router-dom'; // Ensure this is imported
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { useLocation } from 'react-router-dom';
 import apiClient from '../api/axios';
 import styles from './FocusSession.module.css';
 import {
   IoPlay, IoPause, IoRefresh, IoMusicalNotes,
-  IoCheckmarkCircle, IoLogoYoutube, IoSave, IoTrash
+  IoCheckmarkCircle, IoLogoYoutube, IoSave, IoTrash,
+  IoSearchCircle, IoMusicalNotesOutline
 } from 'react-icons/io5';
 import { getSavedTracks, saveTrack, saveAudioFile, deleteTrack } from '../api/savedTracksAPI';
+import { checkNavidromeHealth } from '../api/navidromeAPI';
 import LibraryModal from '../components/focus/LibraryModal';
+import NavidromePlayer from '../components/focus/NavidromePlayer';
+import NavidromeBrowser from '../components/focus/NavidromeBrowser';
 import { storeAudioBlob, getAudioBlobUrl, removeAudioBlob } from '../utils/offlineAudioDB';
 
 const GREEK_QUOTES = [
@@ -40,19 +44,29 @@ const FocusSession = () => {
   const [ytInput, setYtInput] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Saved Tracks State
+  // Saved Tracks & Library State
   const [savedTracks, setSavedTracks] = useState([]);
   const [isLibraryOpen, setIsLibraryOpen] = useState(false);
   const [encapsulationMode, setEncapsulationMode] = useState(false);
-  const [offlineTrackId, setOfflineTrackId] = useState(null); // active offline track id
+  const [offlineTrackId, setOfflineTrackId] = useState(null);
+
+  // Navidrome State
+  const [navidromeReady, setNavidromeReady] = useState(false);
+  const [currentNavidromeTrack, setCurrentNavidromeTrack] = useState(null);
+  const [isNavidromePlaylistOpen, setIsNavidromePlaylistOpen] = useState(false);
+  const [navidromeIsPlaying, setNavidromeIsPlaying] = useState(false);
 
   // --- REFS ---
   const audioRef = useRef(new Audio());
   const offlineAudioRef = useRef(new Audio());
   const playerRef = useRef(null);
+  const navidromePlayerRef = useRef(null);
 
   // --- 1. SAFE YOUTUBE API LOADING ---
   useEffect(() => {
+    // If Navidrome is available, skip loading the YouTube API
+    if (navidromeReady) return;
+
     // Load script only if it doesn't exist
     if (!window.YT) {
       const tag = document.createElement('script');
@@ -65,10 +79,37 @@ const FocusSession = () => {
     window.onYouTubeIframeAPIReady = () => {
       console.log("YouTube API Ready");
     };
+
+    return () => {
+      // cleanup global callback if component unmounts
+      try { window.onYouTubeIframeAPIReady = undefined; } catch (e) {}
+    };
+  }, [navidromeReady]);
+
+  // --- 1.1 CHECK NAVIDROME CONNECTION ---
+  useEffect(() => {
+    const checkNavidrome = async () => {
+      try {
+        const isReady = await checkNavidromeHealth();
+        setNavidromeReady(isReady);
+        if (isReady) {
+          console.log("✅ Navidrome is connected");
+        } else {
+          console.log("⚠️ Navidrome is not available");
+        }
+      } catch (error) {
+        console.error('Navidrome health check failed:', error);
+        setNavidromeReady(false);
+      }
+    };
+    checkNavidrome();
   }, []);
 
   // --- 2. INITIALIZE PLAYER ---
   useEffect(() => {
+    // Do not initialize the YouTube player when Navidrome is available
+    if (navidromeReady) return;
+
     if (youtubeId && window.YT && window.YT.Player) {
       try {
         if (playerRef.current && typeof playerRef.current.loadVideoById === 'function') {
@@ -108,10 +149,12 @@ const FocusSession = () => {
         console.error("Failed to initialize YT Player:", err);
       }
     }
-  }, [youtubeId]);
+  }, [youtubeId, navidromeReady]);
 
   // --- 3. SYNC PLAY/PAUSE ---
   useEffect(() => {
+    // Skip syncing YouTube play/pause when Navidrome is active
+    if (navidromeReady) return;
     if (playerRef.current && typeof playerRef.current.playVideo === 'function') {
       if (isActive && !encapsulationMode) {
         playerRef.current.playVideo();
@@ -215,6 +258,13 @@ const FocusSession = () => {
     };
   }, [offlineTrackId, isActive]);
 
+  // Auto-play Navidrome music when a timer session starts
+  useEffect(() => {
+    if (isActive && currentNavidromeTrack && !navidromeIsPlaying) {
+      setNavidromeIsPlaying(true);
+    }
+  }, [isActive, currentNavidromeTrack, navidromeIsPlaying]);
+
   // --- HANDLERS ---
   const handleYoutubeSubmit = (e) => {
     e.preventDefault();
@@ -304,6 +354,7 @@ const FocusSession = () => {
     if (playerRef.current?.pauseVideo) playerRef.current.pauseVideo();
     if (audioRef.current) audioRef.current.pause();
     if (offlineAudioRef.current) offlineAudioRef.current.pause();
+    setNavidromeIsPlaying(false);
 
     if (!selectedTaskId || !sessionStartTime) {
       resetTimer();
@@ -333,11 +384,32 @@ const FocusSession = () => {
     setSessionStartTime(null);
     if (playerRef.current?.stopVideo) playerRef.current.stopVideo();
     if (offlineAudioRef.current) offlineAudioRef.current.pause();
+    setNavidromeIsPlaying(false);
   };
+
+  const handleSelectNavidromeTrack = (track) => {
+    setCurrentNavidromeTrack(track);
+    setNavidromeIsPlaying(true);
+    setYoutubeId('');
+    setAudioUrl('');
+    setOfflineTrackId(null);
+    setIsNavidromePlaylistOpen(false);
+  };
+
+  const handleNavidromePlayPause = useCallback((shouldPlay) => {
+    setNavidromeIsPlaying(shouldPlay);
+    if (isActive && !shouldPlay) {
+      // Pause session if music is paused during active session
+      setIsActive(false);
+    }
+  }, [isActive]);
 
   const toggleTimer = () => {
     if (!selectedTaskId) return alert("Select a labor.");
     if (!isActive && !sessionStartTime) setSessionStartTime(new Date().toISOString());
+    if (!isActive && currentNavidromeTrack) {
+      setNavidromeIsPlaying(true);
+    }
     setIsActive(!isActive);
   };
 
@@ -427,34 +499,40 @@ const FocusSession = () => {
             </div>
 
             {!encapsulationMode ? (
-              /* YouTube Mode */
-              <>
-                <form onSubmit={handleYoutubeSubmit} className={styles.ytForm}>
-                  <IoLogoYoutube className={styles.ytIcon} />
-                  <input
-                    type="text" placeholder="YouTube Link" value={ytInput}
-                    onChange={(e) => setYtInput(e.target.value)} className={styles.ytInput}
-                  />
-                  <div style={{ display: 'flex', gap: '5px' }}>
-                    <button type="submit" className={styles.ytBtn}>Set</button>
-                    <button type="button" onClick={handleSaveCurrentTrack} className={styles.saveIconBtn} title="Save to Library">
-                      <IoSave />
-                    </button>
-                  </div>
-                </form>
-                <div className={styles.audioButtons}>
-                  <button onClick={() => { setYoutubeId(''); setAudioUrl(''); }} className={!audioUrl && !youtubeId ? styles.activeAudio : ''}>None</button>
-                  {AMBIENT_TRACKS.map(track => (
-                    <button
-                      key={track.name}
-                      onClick={() => { setAudioUrl(track.url); setYoutubeId(''); }}
-                      className={audioUrl === track.url ? styles.activeAudio : ''}
-                    >
-                      {track.name}
-                    </button>
-                  ))}
+              navidromeReady ? (
+                <div className={styles.navidromeInfo}>
+                  <p>Navidrome is available — use the Browse button below to select tracks.</p>
                 </div>
-              </>
+              ) : (
+                /* YouTube Mode */
+                <>
+                  <form onSubmit={handleYoutubeSubmit} className={styles.ytForm}>
+                    <IoLogoYoutube className={styles.ytIcon} />
+                    <input
+                      type="text" placeholder="YouTube Link" value={ytInput}
+                      onChange={(e) => setYtInput(e.target.value)} className={styles.ytInput}
+                    />
+                    <div style={{ display: 'flex', gap: '5px' }}>
+                      <button type="submit" className={styles.ytBtn}>Set</button>
+                      <button type="button" onClick={handleSaveCurrentTrack} className={styles.saveIconBtn} title="Save to Library">
+                        <IoSave />
+                      </button>
+                    </div>
+                  </form>
+                  <div className={styles.audioButtons}>
+                    <button onClick={() => { setYoutubeId(''); setAudioUrl(''); }} className={!audioUrl && !youtubeId ? styles.activeAudio : ''}>None</button>
+                    {AMBIENT_TRACKS.map(track => (
+                      <button
+                        key={track.name}
+                        onClick={() => { setAudioUrl(track.url); setYoutubeId(''); }}
+                        className={audioUrl === track.url ? styles.activeAudio : ''}
+                      >
+                        {track.name}
+                      </button>
+                    ))}
+                  </div>
+                </>
+              )
             ) : (
               /* Encapsulation Mode — Offline Playlist */
               <div className={styles.playlistPanel}>
@@ -508,6 +586,43 @@ const FocusSession = () => {
                     ))}
                   </ul>
                 )}
+              </div>
+            )}
+
+            {/* Navidrome Player */}
+            {currentNavidromeTrack && (
+              <NavidromePlayer
+                ref={navidromePlayerRef}
+                track={currentNavidromeTrack}
+                isPlaying={navidromeIsPlaying && isActive}
+                onPlayPause={handleNavidromePlayPause}
+                onClose={() => {
+                  setCurrentNavidromeTrack(null);
+                  setNavidromeIsPlaying(false);
+                }}
+              />
+            )}
+
+            {/* Navidrome Browser Button */}
+            {navidromeReady && (
+              <button
+                className={styles.navidromeBrowseBtn}
+                onClick={() => setIsNavidromePlaylistOpen(true)}
+                title="Browse Navidrome library"
+              >
+                <IoSearchCircle /> Browse Music Library
+              </button>
+            )}
+
+            {/* Navidrome Browser Modal */}
+            {isNavidromePlaylistOpen && navidromeReady && (
+              <div className={styles.modalOverlay} onClick={() => setIsNavidromePlaylistOpen(false)}>
+                <div className={styles.modalContent} onClick={(e) => e.stopPropagation()}>
+                  <NavidromeBrowser
+                    onSelectTrack={handleSelectNavidromeTrack}
+                    onClose={() => setIsNavidromePlaylistOpen(false)}
+                  />
+                </div>
               </div>
             )}
 
