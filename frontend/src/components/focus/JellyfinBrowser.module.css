@@ -164,28 +164,91 @@
   letter-spacing: 0.5px;
 }
 
-.refreshBtn {
-  display: block;
-  margin: 0 auto 16px;
+.backBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: none;
+  border: none;
+  color: #2a5298;
+  cursor: pointer;
+  margin-bottom: 12px;
+  font-size: 13px;
+}
+
+.albumGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: 12px;
+}
+
+.albumCard {
+  background: white;
+  border-radius: 8px;
+  padding: 10px;
+  cursor: pointer;
+  border: 1px solid #e0e0e0;
+  transition: all 0.2s ease;
+}
+
+.albumCard:hover {
+  transform: translateY(-2px);
+  border-color: #2a5298;
+}
+
+.albumImage {
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  border-radius: 6px;
+  background: #f0f0f0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  margin-bottom: 8px;
+}
+
+.albumImage img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.albumName {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 500;
+  color: #1e3c72;
+}
+
+.albumArtist {
+  margin: 4px 0 0;
+  font-size: 11px;
+  color: #999;
+}
+
+.albumDetailHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.playAlbumBtn {
   background: #2a5298;
   color: white;
   border: none;
   border-radius: 6px;
-  padding: 8px 16px;
+  padding: 6px 12px;
   cursor: pointer;
-  font-size: 13px;
-  font-weight: 500;
-  transition: all 0.2s ease;
+  font-size: 12px;
 }
 
-.refreshBtn:hover:not(:disabled) {
-  background: #1e3c72;
-  transform: scale(1.05);
-}
-
-.refreshBtn:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
+.emptyState {
+  color: #999;
+  text-align: center;
+  padding: 24px;
 }
 
 .songList {

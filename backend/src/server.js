@@ -119,7 +119,7 @@ const goalRoutes = require("./routes/goals.routes");
 const habitRoutes = require("./routes/habits.routes");
 const focusSessionRoutes = require("./routes/focus-sessions.routes");
 const savedTracksRoutes = require('./routes/saved-tracks.routes'); // NEW
-const navidromeRoutes = require('./routes/navidrome.routes'); // NEW
+const jellyfinRoutes = require('./routes/jellyfin.routes');
 const habitLogRoutes = require("./routes/habit-logs.routes");
 const authRoutes = require("./routes/auth.routes.js");
 
@@ -130,7 +130,7 @@ app.use("/api/goals", goalRoutes);
 app.use("/api/habits", habitRoutes);
 app.use("/api/focus-sessions", focusSessionRoutes);
 app.use("/api/saved-tracks", savedTracksRoutes); // NEW
-app.use("/api/navidrome", navidromeRoutes); // NEW
+app.use("/api/jellyfin", jellyfinRoutes);
 app.use("/api/habit-logs", habitLogRoutes);
 app.use("/api/auth", authRoutes);
 

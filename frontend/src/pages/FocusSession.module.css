@@ -554,8 +554,8 @@
   background: rgba(239, 68, 68, 0.28);
 }
 
-/* Navidrome Browse Button */
-.navidromeBrowseBtn {
+/* Jellyfin Browse Button */
+.jellyfinBrowseBtn {
   display: flex;
   align-items: center;
   gap: 0.5rem;
@@ -573,7 +573,7 @@
   transition: all 0.2s ease;
 }
 
-.navidromeBrowseBtn:hover {
+.jellyfinBrowseBtn:hover {
   background: linear-gradient(135deg, #1e3c72 0%, #152a4d 100%);
   transform: translateY(-2px);
   box-shadow: 0 4px 12px rgba(42, 82, 152, 0.3);
@@ -619,7 +619,7 @@
 }
 
 @media (max-width: 768px) {
-  .navidromeBrowseBtn {
+  .jellyfinBrowseBtn {
     font-size: 0.85rem;
   }
 

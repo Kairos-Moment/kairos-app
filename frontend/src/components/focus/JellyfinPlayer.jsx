@@ -1,4 +1,4 @@
-// frontend/src/components/focus/NavidromePlayer.jsx
+// frontend/src/components/focus/JellyfinPlayer.jsx
 import React, { forwardRef, useState, useRef, useEffect, useImperativeHandle, useCallback } from 'react';
 import {
   IoPlay,
@@ -8,9 +8,9 @@ import {
   IoClose,
   IoMusicalNotes,
 } from 'react-icons/io5';
-import styles from './NavidromePlayer.module.css';
+import styles from './JellyfinPlayer.module.css';
 
-const NavidromePlayer = forwardRef(({ track, isPlaying, onPlayPause, onClose }, ref) => {
+const JellyfinPlayer = forwardRef(({ track, isPlaying, onPlayPause, onClose }, ref) => {
   const audioRef = useRef(null);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
@@ -24,27 +24,14 @@ const NavidromePlayer = forwardRef(({ track, isPlaying, onPlayPause, onClose }, 
     try {
       await audio.play();
     } catch (error) {
-      console.error(`Navidrome audio play failed`, {
-        name: error?.name,
-        message: error?.message,
-        code: error?.code,
-        stack: error?.stack,
-        error,
-      });
+      console.error('Jellyfin audio play failed', error);
       if (error?.name === 'NotAllowedError' || error?.name === 'AbortError') {
-        console.warn('Retrying muted play due to autoplay restrictions');
         audio.muted = true;
         try {
           await audio.play();
           audio.muted = isMuted;
         } catch (retryError) {
-          console.error('Navidrome muted retry failed', {
-            name: retryError?.name,
-            message: retryError?.message,
-            code: retryError?.code,
-            stack: retryError?.stack,
-            retryError,
-          });
+          console.error('Jellyfin muted retry failed', retryError);
         }
       }
     }
@@ -74,41 +61,15 @@ const NavidromePlayer = forwardRef(({ track, isPlaying, onPlayPause, onClose }, 
       setDuration(0);
     }
 
-    console.debug('Navidrome audio source configured', {
-      src: audio.src,
-      canPlayType: audio.canPlayType('audio/mpeg'),
-      trackUrl: track.streamUrl,
-    });
-
-    const logAudioError = (context, error) => {
-      console.error(`Navidrome audio ${context}`, {
-        name: error?.name,
-        message: error?.message,
-        code: error?.code,
-        stack: error?.stack,
-        error,
-      });
-    };
-
-    const handleLoadStart = () => {
-      setIsLoading(true);
-    };
+    const handleLoadStart = () => setIsLoading(true);
     const handleCanPlay = () => {
       setIsLoading(false);
-      if (isPlaying) {
-        attemptPlay();
-      }
+      if (isPlaying) attemptPlay();
     };
-    const handleTimeUpdate = () => {
-      setCurrentTime(audio.currentTime);
-    };
-    const handleLoadedMetadata = () => {
-      setDuration(audio.duration);
-    };
+    const handleTimeUpdate = () => setCurrentTime(audio.currentTime);
+    const handleLoadedMetadata = () => setDuration(audio.duration);
     const handleDurationChange = () => {
-      if (audio.duration && !isNaN(audio.duration)) {
-        setDuration(audio.duration);
-      }
+      if (audio.duration && !isNaN(audio.duration)) setDuration(audio.duration);
     };
     const handleEnded = () => {
       if (isPlaying) {
@@ -116,20 +77,7 @@ const NavidromePlayer = forwardRef(({ track, isPlaying, onPlayPause, onClose }, 
         attemptPlay().catch(() => {});
       }
     };
-    const handleAudioError = (event) => {
-      const err = audio.error;
-      console.error(`Navidrome audio error: ${JSON.stringify({
-        eventType: event.type,
-        currentSrc: audio.currentSrc,
-        src: audio.src,
-        networkState: audio.networkState,
-        readyState: audio.readyState,
-        name: err?.name,
-        message: err?.message,
-        code: err?.code,
-      }, null, 2)}`);
-      setIsLoading(false);
-    };
+    const handleAudioError = () => setIsLoading(false);
 
     audio.addEventListener('loadstart', handleLoadStart);
     audio.addEventListener('canplay', handleCanPlay);
@@ -155,7 +103,7 @@ const NavidromePlayer = forwardRef(({ track, isPlaying, onPlayPause, onClose }, 
       audio.removeEventListener('ended', handleEnded);
       audio.removeEventListener('error', handleAudioError);
     };
-  }, [track?.streamUrl, isPlaying, onPlayPause, volume, isMuted, attemptPlay]);
+  }, [track?.streamUrl, isPlaying, volume, isMuted, attemptPlay]);
 
   useImperativeHandle(ref, () => ({
     play: async () => {
@@ -164,18 +112,11 @@ const NavidromePlayer = forwardRef(({ track, isPlaying, onPlayPause, onClose }, 
       try {
         await audio.play();
       } catch (error) {
-        console.error(`Navidrome player imperative play failed: ${JSON.stringify({
-          name: error?.name,
-          message: error?.message,
-          code: error?.code,
-          stack: error?.stack,
-        }, null, 2)}`);
+        console.error('Jellyfin player imperative play failed', error);
       }
     },
     pause: () => {
-      const audio = audioRef.current;
-      if (!audio) return;
-      audio.pause();
+      audioRef.current?.pause();
     },
   }), []);
 
@@ -249,7 +190,6 @@ const NavidromePlayer = forwardRef(({ track, isPlaying, onPlayPause, onClose }, 
       </div>
 
       <div className={styles.controls}>
-        {/* Progress bar */}
         <input
           type="range"
           min="0"
@@ -264,7 +204,6 @@ const NavidromePlayer = forwardRef(({ track, isPlaying, onPlayPause, onClose }, 
           <span>{formatTime(duration)}</span>
         </div>
 
-        {/* Playback controls */}
         <div className={styles.buttonsRow}>
           <button
             className={styles.playBtn}
@@ -281,7 +220,6 @@ const NavidromePlayer = forwardRef(({ track, isPlaying, onPlayPause, onClose }, 
             )}
           </button>
 
-          {/* Volume controls */}
           <div className={styles.volumeControl}>
             <button
               className={styles.volumeBtn}
@@ -307,4 +245,4 @@ const NavidromePlayer = forwardRef(({ track, isPlaying, onPlayPause, onClose }, 
   );
 });
 
-export default NavidromePlayer;
+export default JellyfinPlayer;

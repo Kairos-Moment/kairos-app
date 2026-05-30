@@ -10,10 +10,10 @@ import {
   IoSearchCircle, IoMusicalNotesOutline
 } from 'react-icons/io5';
 import { getSavedTracks, saveTrack, saveAudioFile, deleteTrack } from '../api/savedTracksAPI';
-import { checkNavidromeHealth } from '../api/navidromeAPI';
+import { checkJellyfinHealth } from '../api/jellyfinAPI';
 import LibraryModal from '../components/focus/LibraryModal';
-import NavidromePlayer from '../components/focus/NavidromePlayer';
-import NavidromeBrowser from '../components/focus/NavidromeBrowser';
+import JellyfinPlayer from '../components/focus/JellyfinPlayer';
+import JellyfinBrowser from '../components/focus/JellyfinBrowser';
 import { storeAudioBlob, getAudioBlobUrl, removeAudioBlob } from '../utils/offlineAudioDB';
 
 const GREEK_QUOTES = [
@@ -50,22 +50,22 @@ const FocusSession = () => {
   const [encapsulationMode, setEncapsulationMode] = useState(false);
   const [offlineTrackId, setOfflineTrackId] = useState(null);
 
-  // Navidrome State
-  const [navidromeReady, setNavidromeReady] = useState(false);
-  const [currentNavidromeTrack, setCurrentNavidromeTrack] = useState(null);
-  const [isNavidromePlaylistOpen, setIsNavidromePlaylistOpen] = useState(false);
-  const [navidromeIsPlaying, setNavidromeIsPlaying] = useState(false);
+  // Jellyfin State
+  const [jellyfinReady, setJellyfinReady] = useState(false);
+  const [currentJellyfinTrack, setCurrentJellyfinTrack] = useState(null);
+  const [isJellyfinPlaylistOpen, setIsJellyfinPlaylistOpen] = useState(false);
+  const [jellyfinIsPlaying, setJellyfinIsPlaying] = useState(false);
 
   // --- REFS ---
   const audioRef = useRef(new Audio());
   const offlineAudioRef = useRef(new Audio());
   const playerRef = useRef(null);
-  const navidromePlayerRef = useRef(null);
+  const jellyfinPlayerRef = useRef(null);
 
   // --- 1. SAFE YOUTUBE API LOADING ---
   useEffect(() => {
-    // If Navidrome is available, skip loading the YouTube API
-    if (navidromeReady) return;
+    // If Jellyfin is available, skip loading the YouTube API
+    if (jellyfinReady) return;
 
     // Load script only if it doesn't exist
     if (!window.YT) {
@@ -84,31 +84,31 @@ const FocusSession = () => {
       // cleanup global callback if component unmounts
       try { window.onYouTubeIframeAPIReady = undefined; } catch (e) {}
     };
-  }, [navidromeReady]);
+  }, [jellyfinReady]);
 
-  // --- 1.1 CHECK NAVIDROME CONNECTION ---
+  // --- 1.1 CHECK JELLYFIN CONNECTION ---
   useEffect(() => {
-    const checkNavidrome = async () => {
+    const checkJellyfin = async () => {
       try {
-        const isReady = await checkNavidromeHealth();
-        setNavidromeReady(isReady);
+        const isReady = await checkJellyfinHealth();
+        setJellyfinReady(isReady);
         if (isReady) {
-          console.log("✅ Navidrome is connected");
+          console.log("✅ Jellyfin is connected");
         } else {
-          console.log("⚠️ Navidrome is not available");
+          console.log("⚠️ Jellyfin is not available");
         }
       } catch (error) {
-        console.error('Navidrome health check failed:', error);
-        setNavidromeReady(false);
+        console.error('Jellyfin health check failed:', error);
+        setJellyfinReady(false);
       }
     };
-    checkNavidrome();
+    checkJellyfin();
   }, []);
 
   // --- 2. INITIALIZE PLAYER ---
   useEffect(() => {
-    // Do not initialize the YouTube player when Navidrome is available
-    if (navidromeReady) return;
+    // Do not initialize the YouTube player when Jellyfin is available
+    if (jellyfinReady) return;
 
     if (youtubeId && window.YT && window.YT.Player) {
       try {
@@ -149,12 +149,12 @@ const FocusSession = () => {
         console.error("Failed to initialize YT Player:", err);
       }
     }
-  }, [youtubeId, navidromeReady]);
+  }, [youtubeId, jellyfinReady]);
 
   // --- 3. SYNC PLAY/PAUSE ---
   useEffect(() => {
-    // Skip syncing YouTube play/pause when Navidrome is active
-    if (navidromeReady) return;
+    // Skip syncing YouTube play/pause when Jellyfin is active
+    if (jellyfinReady) return;
     if (playerRef.current && typeof playerRef.current.playVideo === 'function') {
       if (isActive && !encapsulationMode) {
         playerRef.current.playVideo();
@@ -258,12 +258,12 @@ const FocusSession = () => {
     };
   }, [offlineTrackId, isActive]);
 
-  // Auto-play Navidrome music when a timer session starts
+  // Auto-play Jellyfin music when a timer session starts
   useEffect(() => {
-    if (isActive && currentNavidromeTrack && !navidromeIsPlaying) {
-      setNavidromeIsPlaying(true);
+    if (isActive && currentJellyfinTrack && !jellyfinIsPlaying) {
+      setJellyfinIsPlaying(true);
     }
-  }, [isActive, currentNavidromeTrack, navidromeIsPlaying]);
+  }, [isActive, currentJellyfinTrack, jellyfinIsPlaying]);
 
   // --- HANDLERS ---
   const handleYoutubeSubmit = (e) => {
@@ -354,7 +354,7 @@ const FocusSession = () => {
     if (playerRef.current?.pauseVideo) playerRef.current.pauseVideo();
     if (audioRef.current) audioRef.current.pause();
     if (offlineAudioRef.current) offlineAudioRef.current.pause();
-    setNavidromeIsPlaying(false);
+    setJellyfinIsPlaying(false);
 
     if (!selectedTaskId || !sessionStartTime) {
       resetTimer();
@@ -384,20 +384,20 @@ const FocusSession = () => {
     setSessionStartTime(null);
     if (playerRef.current?.stopVideo) playerRef.current.stopVideo();
     if (offlineAudioRef.current) offlineAudioRef.current.pause();
-    setNavidromeIsPlaying(false);
+    setJellyfinIsPlaying(false);
   };
 
-  const handleSelectNavidromeTrack = (track) => {
-    setCurrentNavidromeTrack(track);
-    setNavidromeIsPlaying(true);
+  const handleSelectJellyfinTrack = (track) => {
+    setCurrentJellyfinTrack(track);
+    setJellyfinIsPlaying(true);
     setYoutubeId('');
     setAudioUrl('');
     setOfflineTrackId(null);
-    setIsNavidromePlaylistOpen(false);
+    setIsJellyfinPlaylistOpen(false);
   };
 
-  const handleNavidromePlayPause = useCallback((shouldPlay) => {
-    setNavidromeIsPlaying(shouldPlay);
+  const handleJellyfinPlayPause = useCallback((shouldPlay) => {
+    setJellyfinIsPlaying(shouldPlay);
     if (isActive && !shouldPlay) {
       // Pause session if music is paused during active session
       setIsActive(false);
@@ -407,8 +407,8 @@ const FocusSession = () => {
   const toggleTimer = () => {
     if (!selectedTaskId) return alert("Select a labor.");
     if (!isActive && !sessionStartTime) setSessionStartTime(new Date().toISOString());
-    if (!isActive && currentNavidromeTrack) {
-      setNavidromeIsPlaying(true);
+    if (!isActive && currentJellyfinTrack) {
+      setJellyfinIsPlaying(true);
     }
     setIsActive(!isActive);
   };
@@ -499,9 +499,9 @@ const FocusSession = () => {
             </div>
 
             {!encapsulationMode ? (
-              navidromeReady ? (
-                <div className={styles.navidromeInfo}>
-                  <p>Navidrome is available — use the Browse button below to select tracks.</p>
+              jellyfinReady ? (
+                <div className={styles.jellyfinInfo}>
+                  <p>Jellyfin is available — use the Browse button below to select tracks.</p>
                 </div>
               ) : (
                 /* YouTube Mode */
@@ -589,38 +589,38 @@ const FocusSession = () => {
               </div>
             )}
 
-            {/* Navidrome Player */}
-            {currentNavidromeTrack && (
-              <NavidromePlayer
-                ref={navidromePlayerRef}
-                track={currentNavidromeTrack}
-                isPlaying={navidromeIsPlaying && isActive}
-                onPlayPause={handleNavidromePlayPause}
+            {/* Jellyfin Player */}
+            {currentJellyfinTrack && (
+              <JellyfinPlayer
+                ref={jellyfinPlayerRef}
+                track={currentJellyfinTrack}
+                isPlaying={jellyfinIsPlaying && isActive}
+                onPlayPause={handleJellyfinPlayPause}
                 onClose={() => {
-                  setCurrentNavidromeTrack(null);
-                  setNavidromeIsPlaying(false);
+                  setCurrentJellyfinTrack(null);
+                  setJellyfinIsPlaying(false);
                 }}
               />
             )}
 
-            {/* Navidrome Browser Button */}
-            {navidromeReady && (
+            {/* Jellyfin Browser Button */}
+            {jellyfinReady && (
               <button
-                className={styles.navidromeBrowseBtn}
-                onClick={() => setIsNavidromePlaylistOpen(true)}
-                title="Browse Navidrome library"
+                className={styles.jellyfinBrowseBtn}
+                onClick={() => setIsJellyfinPlaylistOpen(true)}
+                title="Browse Jellyfin library"
               >
                 <IoSearchCircle /> Browse Music Library
               </button>
             )}
 
-            {/* Navidrome Browser Modal */}
-            {isNavidromePlaylistOpen && navidromeReady && (
-              <div className={styles.modalOverlay} onClick={() => setIsNavidromePlaylistOpen(false)}>
+            {/* Jellyfin Browser Modal */}
+            {isJellyfinPlaylistOpen && jellyfinReady && (
+              <div className={styles.modalOverlay} onClick={() => setIsJellyfinPlaylistOpen(false)}>
                 <div className={styles.modalContent} onClick={(e) => e.stopPropagation()}>
-                  <NavidromeBrowser
-                    onSelectTrack={handleSelectNavidromeTrack}
-                    onClose={() => setIsNavidromePlaylistOpen(false)}
+                  <JellyfinBrowser
+                    onSelectTrack={handleSelectJellyfinTrack}
+                    onClose={() => setIsJellyfinPlaylistOpen(false)}
                   />
                 </div>
               </div>

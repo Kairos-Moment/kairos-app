@@ -1,4 +1,4 @@
-// frontend/src/components/focus/NavidromeBrowser.jsx
+// frontend/src/components/focus/JellyfinBrowser.jsx
 import React, { useState, useEffect } from 'react';
 import {
   IoSearch,
@@ -14,10 +14,10 @@ import {
   getArtist,
   getAlbum,
   getSong,
-} from '../../api/navidromeAPI';
-import styles from './NavidromeBrowser.module.css';
+} from '../../api/jellyfinAPI';
+import styles from './JellyfinBrowser.module.css';
 
-const NavidromeBrowser = ({ onSelectTrack, onClose }) => {
+const JellyfinBrowser = ({ onSelectTrack, onClose }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [results, setResults] = useState({ artists: [], albums: [], songs: [] });
   const [libraryArtists, setLibraryArtists] = useState([]);
@@ -37,7 +37,6 @@ const NavidromeBrowser = ({ onSelectTrack, onClose }) => {
     try {
       setIsLoading(true);
       const artists = await getArtists();
-      console.log('[NAVIDROME BROWSER] Loaded artists:', artists?.length, artists?.slice(0, 3));
       const limit = 30;
       const subset = artists.slice(0, limit);
       const details = await Promise.all(
@@ -45,8 +44,7 @@ const NavidromeBrowser = ({ onSelectTrack, onClose }) => {
       );
 
       const collected = [];
-      details.forEach((detail, idx) => {
-        console.log(`[NAVIDROME BROWSER] Artist ${idx}:`, detail?.name, 'albums:', detail?.album?.length);
+      details.forEach((detail) => {
         if (detail && Array.isArray(detail.album)) {
           detail.album.forEach((album) => {
             collected.push({
@@ -57,7 +55,6 @@ const NavidromeBrowser = ({ onSelectTrack, onClose }) => {
         }
       });
 
-      console.log('[NAVIDROME BROWSER] Collected albums:', collected.length);
       setAlbums(collected);
     } catch (error) {
       console.error('Failed to load albums:', error);
@@ -128,8 +125,8 @@ const NavidromeBrowser = ({ onSelectTrack, onClose }) => {
       album: song.album || item.album || selectedAlbum?.name || selectedArtist?.name || 'Unknown Album',
       coverArt: coverArtId ? getCoverArtUrl(coverArtId) : null,
       streamUrl: getStreamUrl(itemId),
-      sourceType: 'navidrome',
-      navidromeId: itemId,
+      sourceType: 'jellyfin',
+      jellyfinId: itemId,
     };
   };
 
@@ -413,4 +410,4 @@ const NavidromeBrowser = ({ onSelectTrack, onClose }) => {
   );
 };
 
-export default NavidromeBrowser;
+export default JellyfinBrowser;

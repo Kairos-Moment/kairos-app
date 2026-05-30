@@ -20,8 +20,8 @@
 ### ⏲️ Focus Space
 - **Immersion**: A dedicated session timer to help you enter a state of deep work.
 - **Productivity Tracking**: Every minute spent in focus is automatically logged and visualized in your reports.
-- **🎵 Navidrome Music Streaming**: Stream your personal music library during focus sessions via Navidrome.
-- **Multi-Source Playback**: YouTube, Navidrome, custom uploads, and ambient sounds—all in one unified player.
+- **🎵 Jellyfin Music Streaming**: Stream your personal music library during focus sessions via Jellyfin.
+- **Multi-Source Playback**: YouTube, Jellyfin, custom uploads, and ambient sounds—all in one unified player.
 
 ### 🎤 Voice Integration
 - **Hands-Free Logging**: Use the integrated **Web Speech API** to log habits via voice commands. Just tell the Oracle "Log reading habit" and watch your garden grow.
@@ -33,7 +33,7 @@
 - **Frontend**: React (Vite), CSS Modules, `date-fns` for period logic.
 - **Backend**: Node.js, Express, Passport.js (GitHub OAuth).
 - **Database**: PostgreSQL (Persistence for users, habits, logs, and tasks).
-- **Music Streaming**: Navidrome (Self-hosted music server with Docker).
+- **Music Streaming**: Jellyfin (Self-hosted media server with Docker).
 - **Hosting**: Render (Web Service + Managed PostgreSQL).
 - **Mobile**: https://github.com/Kairos-Moment/kairos-mobile
 
@@ -41,20 +41,25 @@
 
 ## 🚀 Getting Started
 
-### Music Player Setup (New!)
+### Music Player Setup
 
-To use Navidrome music streaming:
+To use Jellyfin music streaming during Focus Session:
 
-```bash
-# Quick setup (Linux/Mac)
-chmod +x setup-navidrome.sh
-./setup-navidrome.sh
-
-# Quick setup (Windows)
-setup-navidrome.bat
-```
-
-For detailed setup, see [NAVIDROME_SETUP.md](./NAVIDROME_SETUP.md)
+1. **Start Jellyfin**:
+   ```bash
+   docker compose up -d
+   ```
+2. **Complete first-run setup** at [http://localhost:8096](http://localhost:8096):
+   - Create an admin account
+   - Add a music library pointing to `/media` (maps to `./media` in the project root)
+   - Place your music files in the `./media` folder before or after setup
+3. **Create an API key** in Jellyfin: Dashboard → Advanced → API Keys → Add
+4. **Add to your `.env`**:
+   ```env
+   JELLYFIN_URL=http://localhost:8096
+   JELLYFIN_API_KEY=your_api_key_here
+   JELLYFIN_USER_ID=          # optional, auto-resolved if blank
+   ```
 
 ### Local Development
 
@@ -68,17 +73,17 @@ For detailed setup, see [NAVIDROME_SETUP.md](./NAVIDROME_SETUP.md)
    CLIENT_URL=http://localhost:5173
    SESSION_SECRET=your_secret
    
-   # Navidrome (optional, defaults to localhost:4533)
-   NAVIDROME_URL=http://localhost:4533
-   NAVIDROME_USERNAME=admin
-   NAVIDROME_PASSWORD=admin
+   # Jellyfin (optional, for Focus Session music streaming)
+   JELLYFIN_URL=http://localhost:8096
+   JELLYFIN_API_KEY=your_api_key_here
+   JELLYFIN_USER_ID=
    ```
 3. **Install Dependencies**:
    ```bash
    npm install
    npm run install-all  # (If using a root script) or cd backend && npm install, cd frontend && npm install
    ```
-4. **Start Navidrome** (optional but recommended):
+4. **Start Jellyfin** (optional but recommended for music streaming):
    ```bash
    docker-compose up -d
    ```
